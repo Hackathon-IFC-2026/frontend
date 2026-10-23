@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { requestPasswordReset } from '@/services/passwordReset'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const email = ref('')
 const isSubmitting = ref(false)
 const feedback = ref('')
@@ -14,6 +16,8 @@ async function handleSubmit() {
 
   try {
     await requestPasswordReset(email.value.trim())
+    sessionStorage.setItem('passwordResetEmail', email.value.trim())
+    await router.push({ name: 'verificacao-codigo' })
     feedback.value =
       'Se existir uma conta associada a esse e-mail, enviaremos as instruções de recuperação.'
   } catch {

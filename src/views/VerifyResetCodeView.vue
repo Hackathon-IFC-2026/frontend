@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { PASSWORD_RESET_TEST_CODE, verifyPasswordResetCode } from '@/services/passwordReset'
+import { verifyPasswordResetCode } from '@/services/passwordReset'
 
 const router = useRouter()
 const email = sessionStorage.getItem('passwordResetEmail') ?? ''
@@ -18,17 +18,25 @@ onMounted(() => {
 })
 
 async function handleSubmit() {
-  isSubmitting.value = true
   feedback.value = ''
   hasError.value = false
 
+  if (code.value.length !== 6) {
+    hasError.value = true
+    feedback.value = 'Digite os seis números do código.'
+    return
+  }
+
+  isSubmitting.value = true
+
   try {
     await verifyPasswordResetCode(email, code.value)
+    sessionStorage.setItem('passwordResetCode', code.value)
     isVerified.value = true
-    feedback.value = 'Código confirmado. A próxima etapa será cadastrar uma nova senha.'
+    await router.push({ name: 'nova-senha' })
   } catch {
     hasError.value = true
-    feedback.value = 'O código informado não é válido ou expirou. Confira e tente novamente.'
+    feedback.value = 'O código é inválido ou expirou. Confira e tente novamente.'
   } finally {
     isSubmitting.value = false
   }
@@ -75,22 +83,7 @@ function handleBackspace(event, index) {
   }
 }
 
-// const response = await fetch('/api/auth/password-reset/verify', {
-//   method: 'POST',
-//   headers: {
-//     'Content-Type': 'application/json',
-//   },
-//   body: JSON.stringify({ email, code}),
-// })
 
-// if (!response.ok) {
-//   throw new Error('O código é inválido ou expirou.')
-// }
-
-// const data = await response.json()
-// return data.resetToken
-
-// { "resetToken": "token-temporario" } o back está assim?
 
 </script>
 
@@ -138,10 +131,6 @@ function handleBackspace(event, index) {
       </form>
       <RouterLink class="back-link" to="/recuperar-senha">Voltar</RouterLink>
 
-
-      <p v-if="PASSWORD_RESET_TEST_CODE" class="description">
-        Modo de demonstração: use o código {{ PASSWORD_RESET_TEST_CODE }}.
-      </p>
 
       <button
         class="back-link"

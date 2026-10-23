@@ -1,3 +1,4 @@
+```vue
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -28,9 +29,10 @@ const isAuthRoute = computed(() => {
   >
     <router-view v-slot="{ Component, route: r }">
       <transition name="page" mode="out-in">
-        <component :is="Component" :key="r.path" />
+        <component :is="Component" :key="r.fullPath" />
       </transition>
     </router-view>
+
     <ToastNotification />
   </AuthBackground>
 
