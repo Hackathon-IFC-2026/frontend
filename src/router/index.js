@@ -8,6 +8,7 @@ import Projetos from '../views/ProjetosView.vue'
 import Tarefas from '../views/TarefasView.vue'
 import Calendario from '../views/CalendarioView.vue'
 import Configuracoes from '../views/ConfiguracoesView.vue'
+import KanbanView from '../views/KanbanView.vue'
 
 const routes = [
   {
@@ -48,6 +49,12 @@ const routes = [
     path: '/projetos',
     name: 'projetos',
     component: Projetos,
+    meta: { requiresAuthBackground: false },
+  },
+  {
+    path: '/kanban',
+    name: 'projeto-detalhes',
+    component: KanbanView,
     meta: { requiresAuthBackground: false },
   },
   {

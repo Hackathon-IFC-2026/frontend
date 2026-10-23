@@ -16,20 +16,8 @@ const side = computed(() => route.meta.side ?? 'left')
 const isAuthRoute = computed(() => {
   return (
     Boolean(route.meta.requiresAuthBackground) ||
-    [
-      'login',
-      'cadastro',
-      'recuperar-senha',
-      'verificacao-codigo',
-      'nova-senha',
-    ].includes(route.name) ||
-    [
-      '/login',
-      '/cadastro',
-      '/recuperar-senha',
-      '/verificacao-codigo',
-      '/nova-senha',
-    ].includes(route.path)
+    ['login', 'cadastro'].includes(route.name) ||
+    ['/login', '/cadastro'].includes(route.path)
   )
 })
 </script>
@@ -55,6 +43,7 @@ const isAuthRoute = computed(() => {
       class="app-main"
       :class="{ 'sidebar-collapsed': sidebarStore.isCollapsed }"
     >
+
       <main class="app-content">
         <router-view v-slot="{ Component, route: r }">
           <transition name="page" mode="out-in">
@@ -113,4 +102,3 @@ const isAuthRoute = computed(() => {
   }
 }
 </style>
-```
