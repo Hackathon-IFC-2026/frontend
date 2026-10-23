@@ -13,7 +13,7 @@ const hasError = ref(false)
 
 onMounted(() => {
   if (!email) {
-    router.replace({ name: 'forgot-password' })
+    router.replace({ name: 'recuperar-senha' })
   }
 })
 
@@ -136,7 +136,7 @@ function handleBackspace(event, index) {
           }}
         </button>
       </form>
-      <RouterLink class="back-link" to="/forgot-password">Voltar</RouterLink>
+      <RouterLink class="back-link" to="/recuperar-senha">Voltar</RouterLink>
 
 
       <p v-if="PASSWORD_RESET_TEST_CODE" class="description">
