@@ -69,18 +69,21 @@
       </div>
     </div>
 
-    <router-link
-      :to="linkDestino"
+    <button
+      type="button"
       class="btn-acessar"
-      @click.stop
+      @click="irParaProjeto"
     >
       Acessar projeto
-    </router-link>
+    </button>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const props = defineProps({
   projeto: {
@@ -99,6 +102,17 @@ const props = defineProps({
     })
   }
 })
+
+const linkDestino = computed(() => {
+  if (props.projeto.link) return props.projeto.link
+  const idProjeto = props.projeto.id || props.projeto.id_projeto || 1
+  return `/projetos/${idProjeto}`
+})
+
+function irParaProjeto(event) {
+  event?.stopPropagation?.()
+  router.push(linkDestino.value)
+}
 
 function formatarCodigo(id) {
   return String(id).padStart(4, '0')

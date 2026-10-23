@@ -6,8 +6,10 @@ import Login from '../views/LoginView.vue'
 import Cadastro from '../views/CadastroView.vue'
 import Projetos from '../views/ProjetosView.vue'
 import Tarefas from '../views/TarefasView.vue'
+import MinhasTarefas from '../views/MinhasTarefasView.vue'
 import Calendario from '../views/CalendarioView.vue'
 import Configuracoes from '../views/ConfiguracoesView.vue'
+import KanbanView from '../views/KanbanView.vue'
 import Perfil from '../views/PerfilView.vue'
 import Notificacoes from '../views/NotificacoesView.vue'
 
@@ -53,9 +55,21 @@ const routes = [
     meta: { requiresAuthBackground: false },
   },
   {
+    path: '/kanban/:id?',
+    name: 'projeto-detalhes',
+    component: KanbanView,
+    meta: { requiresAuthBackground: false },
+  },
+  {
     path: '/tarefas',
     name: 'tarefas',
     component: Tarefas,
+    meta: { requiresAuthBackground: false },
+  },
+  {
+    path: '/minhas-tarefas',
+    name: 'minhas-tarefas',
+    component: MinhasTarefas,
     meta: { requiresAuthBackground: false },
   },
   {

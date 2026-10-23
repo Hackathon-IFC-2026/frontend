@@ -17,9 +17,9 @@
             <span v-if="!sidebarStore.isCollapsed">Projetos</span>
           </router-link>
 
-          <router-link to="/tarefas" class="menu-item">
+          <router-link to="/minhas-tarefas" class="menu-item">
             <span class="material-symbols-outlined">check_box</span>
-            <span v-if="!sidebarStore.isCollapsed">Tarefas</span>
+            <span v-if="!sidebarStore.isCollapsed">Minhas tarefas</span>
           </router-link>
 
           <router-link to="/calendario" class="menu-item">
@@ -55,7 +55,12 @@
         <span class="material-symbols-outlined">folder_copy</span>
       </router-link>
 
-      <router-link to="/tarefas" class="mobile-item">
+      <router-link
+        to="/minhas-tarefas"
+        class="mobile-item"
+        aria-label="Minhas tarefas"
+        title="Minhas tarefas"
+      >
         <span class="material-symbols-outlined">check_box</span>
       </router-link>
 
