@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AuthBackground from './components/AuthBackground.vue'
 import ToastNotification from './components/ToastNotification.vue'
+import HeaderComponent from './components/HeaderComponent.vue'
+import FooterComponent from './components/FooterComponent.vue'
 import SidebarComponent from './components/SidebarComponent.vue'
 
 const route = useRoute()
@@ -19,11 +21,14 @@ const showSidebar = computed(() =>
     :side="side"
   >
     <SidebarComponent v-if="showSidebar" />
+    <HeaderComponent />
     <router-view v-slot="{ Component, route: r }">
       <transition name="page" mode="out-in">
         <component :is="Component" :key="r.path" />
       </transition>
     </router-view>
     <ToastNotification />
+    <FooterComponent />
   </component>
+
 </template>
