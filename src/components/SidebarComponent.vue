@@ -153,7 +153,7 @@ const handleLogout = () => {
 .sidebar-logo h2 {
   color: #fff9e3;
   font-weight: 300;
-  font-size: 1.5rem;
+  font-size: 2rem;
   line-height: 1;
   margin: 0;
   letter-spacing: 1px;
