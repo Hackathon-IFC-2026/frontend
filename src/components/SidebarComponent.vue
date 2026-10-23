@@ -27,13 +27,22 @@
             <span v-if="!sidebarStore.isCollapsed">Calendário</span>
           </router-link>
 
-          <router-link to="/configuracoes" class="menu-item">
-            <span class="material-symbols-outlined menu-icon">settings</span>
-            <span v-if="!sidebarStore.isCollapsed">Configurações</span>
+          <router-link to="/notificacoes" class="menu-item">
+            <span class="material-symbols-outlined menu-icon">notifications</span>
+            <span v-if="!sidebarCollapsed">Notificações</span>
           </router-link>
+
         </nav>
       </div>
       <div class="sidebar-footer">
+        <router-link to="/perfil" class="menu-item">
+          <span class="material-symbols-outlined menu-icon">person</span>
+          <span v-if="!sidebarStore.isCollapsed">{{ nomeUsuario }}</span>
+        </router-link>
+        <router-link to="/configuracoes" class="menu-item">
+          <span class="material-symbols-outlined menu-icon">settings</span>
+          <span v-if="!sidebarStore.isCollapsed">Configurações</span>
+        </router-link>
         <button @click="handleLogout" class="footer-item botao-logout">
           <span class="material-symbols-outlined menu-icon">logout</span>
           <span v-if="!sidebarStore.isCollapsed">Sair</span>
@@ -74,10 +83,15 @@
 import { useAuthStore } from "@/stores/auth.js";
 import { useSidebarStore } from "@/stores/sidebar.js";
 import { useRouter } from "vue-router";
+import { computed } from 'vue'
 
 const authStore = useAuthStore();
 const sidebarStore = useSidebarStore();
 const router = useRouter();
+
+const nomeUsuario = computed(() => {
+  return authStore.usuario?.nome || authStore.usuario?.name || 'Usuário'
+})
 
 const handleLogout = () => {
   authStore.logout();
