@@ -1,25 +1,22 @@
 <template>
   <main class="auth-view auth-view--welcome-left">
     <section class="welcome">
-      <h1>Olá, bem-vindo!</h1>
+      <h1>KANDO</h1>
+      <p>Gerenciamento de tarefas</p>
       <p>Você já possui cadastro?<br />Ótimo, acesse sua conta.</p>
       <RouterLink to="/login" class="btn">Entrar</RouterLink>
     </section>
-
     <section class="form-side">
       <h2 class="form-title">Cadastro</h2>
-
       <form class="form" @submit.prevent="enviar">
         <div class="field">
           <label for="nome">Nome</label>
           <input id="nome" v-model="form.nome" type="text" placeholder="Digite seu nome aqui" autocomplete="name" required />
         </div>
-
         <div class="field">
           <label for="email">E-mail</label>
           <input id="email" v-model="form.email" type="email" placeholder="Digite seu e-mail aqui" autocomplete="email" required />
         </div>
-
         <div class="field" role="group" aria-labelledby="nascimento">
           <span id="nascimento" class="field__label">Data de nascimento</span>
           <div class="date-row">
@@ -40,12 +37,50 @@
 
         <div class="field">
           <label for="senha">Senha</label>
-          <input id="senha" v-model="form.senha" type="password" placeholder="Digite sua senha aqui" autocomplete="new-password" required />
+          <div class="senha-container">
+            <input
+              id="senha"
+              v-model="form.senha"
+              :type="mostrarSenha ? 'text' : 'password'"
+              placeholder="Digite sua senha aqui"
+              autocomplete="new-password"
+              required
+            />
+            <button
+              type="button"
+              class="senha-toggle"
+              :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'"
+              @click="mostrarSenha = !mostrarSenha"
+            >
+              <span class="material-symbols-outlined">
+                {{ mostrarSenha ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+          </div>
         </div>
 
         <div class="field">
           <label for="confirma">Confirme sua senha</label>
-          <input id="confirma" v-model="form.confirma" type="password" placeholder="Confirme sua senha aqui" autocomplete="new-password" required />
+          <div class="senha-container">
+            <input
+              id="confirma"
+              v-model="form.confirma"
+              :type="mostrarConfirmacao ? 'text' : 'password'"
+              placeholder="Confirme sua senha aqui"
+              autocomplete="new-password"
+              required
+            />
+            <button
+              type="button"
+              class="senha-toggle"
+              :aria-label="mostrarConfirmacao ? 'Ocultar senha' : 'Mostrar senha'"
+              @click="mostrarConfirmacao = !mostrarConfirmacao"
+            >
+              <span class="material-symbols-outlined">
+                {{ mostrarConfirmacao ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+          </div>
         </div>
 
         <button type="submit" class="btn">Continuar</button>
@@ -55,7 +90,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '../stores/toast'
@@ -63,6 +98,9 @@ import { useToastStore } from '../stores/toast'
 const toast = useToastStore()
 const router = useRouter()
 const authStore = useAuthStore()
+
+const mostrarSenha = ref(false)
+const mostrarConfirmacao = ref(false)
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril',
@@ -82,7 +120,6 @@ const form = reactive({
   senha: '',
   confirma: ''
 })
-
 
 async function enviar() {
   if (form.senha !== form.confirma) {
@@ -125,3 +162,45 @@ async function enviar() {
   }
 }
 </script>
+
+<style scoped>
+.senha-container {
+  position: relative;
+  width: 100%;
+}
+
+.senha-container input {
+  padding-right: 55px;
+}
+
+.senha-toggle {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #fff9e3;
+  cursor: pointer;
+}
+
+.senha-toggle .material-symbols-outlined {
+  font-size: 23px;
+}
+
+.welcome h1 + p {
+  margin-top: 8px;
+}
+
+.welcome p + p {
+  margin-top: 28px;
+}
+
+.welcome p + .btn {
+  margin-top: 12px;
+}
+</style>
