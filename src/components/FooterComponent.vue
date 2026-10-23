@@ -4,7 +4,6 @@
 <template>
   <footer class="footer">
     <div class="footer-content">
-      <!-- Top Row -->
       <div class="footer-top">
         <div class="logo">
           <span class="material-symbols-outlined logo-icon">circle</span>
@@ -19,10 +18,8 @@
         </nav>
       </div>
 
-      <!-- Divider -->
       <hr class="divider" />
 
-      <!-- Bottom Row -->
       <div class="footer-bottom">
         <p class="copyright">©2026 Todos os direitos reservados</p>
 
@@ -61,6 +58,7 @@
   font-family: 'Poppins', sans-serif;
   padding: 32px 32px 24px;
   box-sizing: border-box;
+  margin-top: auto;
 }
 
 .footer-content {

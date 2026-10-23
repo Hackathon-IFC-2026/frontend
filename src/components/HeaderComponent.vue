@@ -25,6 +25,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   width: 100%;
   background-color: #1A3721;
   display: flex;
@@ -34,6 +37,7 @@
   box-sizing: border-box;
   gap: 24px;
   font-family: 'Poppins', sans-serif;
+  transition: padding 0.25s ease;
 }
 
 .search-container {

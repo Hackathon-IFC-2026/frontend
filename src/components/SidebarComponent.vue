@@ -1,49 +1,45 @@
 <template>
-  <div class="dashboard-layout">
-    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
-      <button class="toggle-sidebar" @click="sidebarCollapsed = !sidebarCollapsed"
-        :title="sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'">
-        <span class="material-symbols-outlined">{{ sidebarCollapsed ? "chevron_right" : "chevron_left" }}</span>
+  <div class="sidebar-wrapper">
+    <aside class="sidebar" :class="{ collapsed: sidebarStore.isCollapsed }">
+      <button class="toggle-sidebar" @click="sidebarStore.toggle()"
+        :title="sidebarStore.isCollapsed ? 'Expandir menu' : 'Recolher menu'">
+        <span class="material-symbols-outlined">{{ sidebarStore.isCollapsed ? "chevron_right" : "chevron_left" }}</span>
       </button>
       <div class="sidebar-top">
         <div class="sidebar-logo">
-          <h2 v-if="!sidebarCollapsed">Kando</h2>
+          <h2 v-if="!sidebarStore.isCollapsed">Kando</h2>
           <div v-else class="logo-mini"></div>
         </div>
 
         <nav class="sidebar-menu">
           <router-link to="/projetos" class="menu-item">
             <span class="material-symbols-outlined">folder_copy</span>
-            <span v-if="!sidebarCollapsed">Projetos</span>
+            <span v-if="!sidebarStore.isCollapsed">Projetos</span>
           </router-link>
 
           <router-link to="/tarefas" class="menu-item">
             <span class="material-symbols-outlined">check_box</span>
-            <span v-if="!sidebarCollapsed">Tarefas</span>
+            <span v-if="!sidebarStore.isCollapsed">Tarefas</span>
           </router-link>
 
           <router-link to="/calendario" class="menu-item">
             <span class="material-symbols-outlined">calendar_month</span>
-            <span v-if="!sidebarCollapsed">Calendário</span>
+            <span v-if="!sidebarStore.isCollapsed">Calendário</span>
           </router-link>
 
           <router-link to="/configuracoes" class="menu-item">
             <span class="material-symbols-outlined menu-icon">settings</span>
-            <span v-if="!sidebarCollapsed">Configurações</span>
+            <span v-if="!sidebarStore.isCollapsed">Configurações</span>
           </router-link>
         </nav>
       </div>
       <div class="sidebar-footer">
         <button @click="handleLogout" class="footer-item botao-logout">
           <span class="material-symbols-outlined menu-icon">logout</span>
-          <span v-if="!sidebarCollapsed">Sair</span>
+          <span v-if="!sidebarStore.isCollapsed">Sair</span>
         </button>
       </div>
     </aside>
-
-    <main class="dashboard-content" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-      <router-view />
-    </main>
 
     <nav class="mobile-nav">
       <router-link to="/projetos" class="mobile-item">
@@ -70,14 +66,13 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth.js";
+import { useSidebarStore } from "@/stores/sidebar.js";
 import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
+const sidebarStore = useSidebarStore();
 const router = useRouter();
-
-const sidebarCollapsed = ref(false);
 
 const handleLogout = () => {
   authStore.logout();
@@ -86,9 +81,8 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-.dashboard-layout {
-  min-height: 100vh;
-  width: 100%;
+.sidebar-wrapper {
+  position: relative;
 }
 
 .sidebar {
@@ -269,21 +263,6 @@ const handleLogout = () => {
   gap: 0;
 }
 
-.dashboard-content {
-  min-height: 100vh;
-  width: calc(100% - 235px);
-  margin-left: 235px;
-  padding: 25px;
-  box-sizing: border-box;
-  transition: margin-left 0.25s ease, width 0.25s ease;
-  overflow-y: auto;
-}
-
-.dashboard-content.sidebar-collapsed {
-  width: calc(100% - 70px);
-  margin-left: 70px;
-}
-
 .mobile-nav {
   display: none;
 }
@@ -299,14 +278,6 @@ const handleLogout = () => {
 @media (max-width: 767px) {
   .sidebar {
     display: none;
-  }
-
-  .dashboard-content,
-  .dashboard-content.sidebar-collapsed {
-    width: 100%;
-    margin-left: 0;
-    padding: 15px;
-    padding-bottom: 100px;
   }
 
   .mobile-nav {
