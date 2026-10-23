@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { useSidebarStore } from './stores/sidebar.js'
 import AuthBackground from './components/AuthBackground.vue'
 import ToastNotification from './components/ToastNotification.vue'
-import HeaderComponent from './components/HeaderComponent.vue'
 import FooterComponent from './components/FooterComponent.vue'
 import SidebarComponent from './components/SidebarComponent.vue'
 
@@ -42,7 +41,6 @@ const isAuthRoute = computed(() => {
       class="app-main"
       :class="{ 'sidebar-collapsed': sidebarStore.isCollapsed }"
     >
-      <HeaderComponent />
 
       <main class="app-content">
         <router-view v-slot="{ Component, route: r }">
@@ -64,48 +62,7 @@ const isAuthRoute = computed(() => {
   min-height: 100vh;
   width: 100%;
   display: flex;
-  background-color: #f8fafc;
-  position: relative;
-}
-
-.app-main {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  width: calc(100% - 235px);
-  margin-left: 235px;
-  transition: margin-left 0.25s ease, width 0.25s ease;
-  box-sizing: border-box;
-}
-
-.app-main.sidebar-collapsed {
-  width: calc(100% - 70px);
-  margin-left: 70px;
-}
-
-.app-content {
-  flex: 1;
-  padding: 24px;
-  box-sizing: border-box;
-}
-
-@media (max-width: 767px) {
-  .app-main,
-  .app-main.sidebar-collapsed {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .app-content {
-    padding: 16px;
-    padding-bottom: 95px;
-  }
-}
-.app-layout {
-  min-height: 100vh;
-  width: 100%;
-  display: flex;
-  background-color: #f8fafc;
+  background-color: #ffffff;
   position: relative;
 }
 
@@ -143,4 +100,3 @@ const isAuthRoute = computed(() => {
   }
 }
 </style>
-

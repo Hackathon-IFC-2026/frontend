@@ -6,10 +6,10 @@
         <span class="material-symbols-outlined">{{ sidebarStore.isCollapsed ? "chevron_right" : "chevron_left" }}</span>
       </button>
       <div class="sidebar-top">
-        <div class="sidebar-logo">
+        <router-link to="/projetos" class="sidebar-logo" title="Ir para Home / Projetos">
           <h2 v-if="!sidebarStore.isCollapsed">Kando</h2>
-          <div v-else class="logo-mini"></div>
-        </div>
+          <div v-else class="logo-mini">K</div>
+        </router-link>
 
         <nav class="sidebar-menu">
           <router-link to="/projetos" class="menu-item">
@@ -142,6 +142,13 @@ const handleLogout = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-logo:hover {
+  opacity: 0.85;
 }
 
 .sidebar-logo h2 {
