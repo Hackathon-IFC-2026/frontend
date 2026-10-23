@@ -1,8 +1,7 @@
 <script setup>
+import inicioProjetoView from './inicioProjetoView.vue'
 </script>
 
 <template>
-  <main>
-    <h1>home</h1>
-  </main>
+  <inicioProjetoView />
 </template>
