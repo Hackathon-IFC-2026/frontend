@@ -1,62 +1,136 @@
-<script>
-import { defineComponent, ref } from 'vue'
-import useAuthUser from 'src/composables/UseAuthUser' // Trocar
-import useNotify from 'src/composables/UseNotify' // Trocar
+<script setup>
+import { ref } from 'vue'
+import { requestPasswordReset } from '@/services/passwordReset'
 
-export default defineComponent({
-  setup () {
-    const { sendPasswordResetEmail } = useAuthUser()
-    const { notifyError, notifySuccess } = useNotify()
+const email = ref('')
+const isSubmitting = ref(false)
+const feedback = ref('')
+const hasError = ref(false)
 
-    const email = ref('')
+async function handleSubmit() {
+  isSubmitting.value = true
+  feedback.value = ''
+  hasError.value = false
 
-    const handleForgotPassoword = async () => {
-      try {
-        await sendPasswordResetEmail(email.value)
-        notifySuccess(`E-mail para redefinição de senha enviado para: ${email.value}`)
-      } catch (error) {
-        notifyError(error.message)
-      }
-    }
-
-    return {
-      email,
-      handleForgotPassoword
-    }
+  try {
+    await requestPasswordReset(email.value.trim())
+    feedback.value =
+      'Se existir uma conta associada a esse e-mail, enviaremos as instruções de recuperação.'
+  } catch {
+    hasError.value = true
+    feedback.value = 'Não foi possível processar a solicitação agora. Tente novamente em instantes.'
+  } finally {
+    isSubmitting.value = false
   }
-})
+}
 </script>
 
 <template>
-  <main>
-    <form @submit.prevent="handleForgotPassoword">
-      <h2> Redefinir Senha</h2>
-      <p>Essa conta está vinculada ao e-mail xyz******@gmail.com.
-        Confirme o seu email no campo abaixo para receber um código
-        de recuperação:</p>
-
+  <main class="auth-view">
+    <section class="form-side">
       <div>
-        <input
-        id="email"
-        v-model="email"
-        type="email"
-        required
-        placeholder="Digite seu email"
-        />
+        <h1 class="form-title">Recuperação</h1>
+        <p class="description">
+          Essa conta está vinculada a um e-mail. Confirme o seu email
+          no campo abaixo para receber um código de recuperação:
+        </p>
 
-        <div>
-          <button class="button-send" type="submit">Enviar e-mail de recuperação</button>
+        <form class="form" @submit.prevent="handleSubmit">
+          <div class="field">
+            <label for="email">E-mail</label>
+          <input
+            id="email"
+            v-model.trim="email"
+            type="email"
+            name="email"
+            autocomplete="email"
+            placeholder="digite seu e-mail aqui"
+            required
+            :disabled="isSubmitting"
+          />
+          </div>
 
-          <button class="button-back" type="button">Voltar</button>
-        </div>
+
+          <button type="submit" :disabled="isSubmitting" class="btn">
+            {{ isSubmitting ? 'Continuando...' : 'Continuar' }}
+
+          </button>
+
+          <p
+            v-if="feedback"
+            class="feedback"
+            :class="{ 'feedback-error': hasError }"
+            role="status"
+            aria-live="polite"
+          >
+            {{ feedback }}
+          </p>
+        </form>
+
+        <RouterLink class="back-link" to="/">Voltar ao início</RouterLink>
       </div>
-    </form>
+    </section>
+
   </main>
 </template>
 
+<style scoped>
 
-<style>
-h2 {
-  color:black
+main{
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 16vw 0 0;
+
+}
+.description{
+  margin: 40px 0;
+}
+
+.auth-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 32px;
+  padding: 40px 10px 40px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.form-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 32px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.auth-view > :first-child {
+  margin-top: auto;
+}
+.auth-view > :last-child {
+  margin-bottom: auto;
+}
+
+.btn {
+  padding: 16px 24px;
+}
+
+.back-link {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  font-size: 1rem;
+  color: #fff9e3;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  margin-top: 20px;
+  color: #4E7855;
 }
 </style>
