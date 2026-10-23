@@ -11,34 +11,14 @@
         </div>
         <div class="field">
           <label for="senha">Senha</label>
-          <div class="senha-container">
-            <input
-              id="senha"
-              v-model="form.senha"
-              :type="mostrarSenha ? 'text' : 'password'"
-              placeholder="Digite sua senha aqui"
-              autocomplete="current-password"
-              required
-            />
-            <button
-              type="button"
-              class="senha-toggle"
-              :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'"
-              @click="mostrarSenha = !mostrarSenha"
-            >
-              <span class="material-symbols-outlined">
-                {{ mostrarSenha ? 'visibility_off' : 'visibility' }}
-              </span>
-            </button>
-          </div>
+          <PasswordInput id="senha" v-model="form.senha" placeholder="Digite sua senha aqui" autocomplete="current-password" required />
         </div>
         <button type="submit" class="btn">Entrar</button>
       </form>
     </section>
 
     <section class="welcome">
-      <h1>KANDO</h1>
-      <p>Gerenciamento de tarefas</p>
+      <h1>Bem-vindo de volta ao<br>Kando!</h1>
       <p>Não possui conta?<br />Faça seu cadastro.</p>
       <RouterLink to="/cadastro" class="btn">Cadastrar-se</RouterLink>
     </section>
@@ -46,7 +26,8 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
+import PasswordInput from '../components/PasswordInput.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'

@@ -1,8 +1,7 @@
 <template>
   <main class="auth-view auth-view--welcome-left">
     <section class="welcome">
-      <h1>KANDO</h1>
-      <p>Gerenciamento de tarefas</p>
+      <h1>Olá, bem-vindo ao<br>Kando!</h1>
       <p>Você já possui cadastro?<br />Ótimo, acesse sua conta.</p>
       <RouterLink to="/login" class="btn">Entrar</RouterLink>
     </section>
@@ -37,50 +36,12 @@
 
         <div class="field">
           <label for="senha">Senha</label>
-          <div class="senha-container">
-            <input
-              id="senha"
-              v-model="form.senha"
-              :type="mostrarSenha ? 'text' : 'password'"
-              placeholder="Digite sua senha aqui"
-              autocomplete="new-password"
-              required
-            />
-            <button
-              type="button"
-              class="senha-toggle"
-              :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'"
-              @click="mostrarSenha = !mostrarSenha"
-            >
-              <span class="material-symbols-outlined">
-                {{ mostrarSenha ? 'visibility_off' : 'visibility' }}
-              </span>
-            </button>
-          </div>
+          <PasswordInput id="senha" v-model="form.senha" placeholder="Digite sua senha aqui" autocomplete="new-password" required />
         </div>
 
         <div class="field">
           <label for="confirma">Confirme sua senha</label>
-          <div class="senha-container">
-            <input
-              id="confirma"
-              v-model="form.confirma"
-              :type="mostrarConfirmacao ? 'text' : 'password'"
-              placeholder="Confirme sua senha aqui"
-              autocomplete="new-password"
-              required
-            />
-            <button
-              type="button"
-              class="senha-toggle"
-              :aria-label="mostrarConfirmacao ? 'Ocultar senha' : 'Mostrar senha'"
-              @click="mostrarConfirmacao = !mostrarConfirmacao"
-            >
-              <span class="material-symbols-outlined">
-                {{ mostrarConfirmacao ? 'visibility_off' : 'visibility' }}
-              </span>
-            </button>
-          </div>
+          <PasswordInput id="confirma" v-model="form.confirma" placeholder="Confirme sua senha aqui" autocomplete="new-password" required />
         </div>
 
         <button type="submit" class="btn">Continuar</button>
@@ -90,7 +51,8 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
+import PasswordInput from '../components/PasswordInput.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '../stores/toast'
@@ -99,8 +61,7 @@ const toast = useToastStore()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const mostrarSenha = ref(false)
-const mostrarConfirmacao = ref(false)
+
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril',
