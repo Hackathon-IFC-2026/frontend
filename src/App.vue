@@ -1,4 +1,3 @@
-
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -6,13 +5,22 @@ import AuthBackground from './components/AuthBackground.vue'
 import ToastNotification from './components/ToastNotification.vue'
 import HeaderComponent from './components/HeaderComponent.vue'
 import FooterComponent from './components/FooterComponent.vue'
+import SidebarComponent from './components/SidebarComponent.vue'
 
 const route = useRoute()
-const side = computed(() => route.meta.side ?? 'left')
-</script>
 
+const side = computed(() => route.meta.side ?? 'left')
+
+const showSidebar = computed(() =>
+  !['login', 'cadastro'].includes(route.name)
+)
+</script>
 <template>
-  <component :is="route.meta.requiresAuthBackground ? AuthBackground : 'div'" :side="side">
+  <component
+    :is="route.meta.requiresAuthBackground ? AuthBackground : 'div'"
+    :side="side"
+  >
+    <SidebarComponent v-if="showSidebar" />
     <HeaderComponent />
     <router-view v-slot="{ Component, route: r }">
       <transition name="page" mode="out-in">
@@ -24,4 +32,3 @@ const side = computed(() => route.meta.side ?? 'left')
   </component>
 
 </template>
-
