@@ -2,6 +2,9 @@
   <div class="projetos-container">
     <div class="page-header">
       <h1 class="page-title">Projetos</h1>
+      <p class="pagina-descricao">
+          Acompanhe todos os projetos que você faz parte e acompanhe seu andamento.
+        </p>
     </div>
 
     <div v-if="carregando" class="loading-state">
@@ -182,6 +185,7 @@ function abrirMenuProjeto(projeto) {
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
+  padding: 28px 32px 48px;
   font-family: 'Poppins', sans-serif;
   box-sizing: border-box;
 }
@@ -191,11 +195,18 @@ function abrirMenuProjeto(projeto) {
 }
 
 .page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #000000;
   margin: 0;
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.15;
   letter-spacing: -0.5px;
+}
+
+
+.pagina-descricao {
+  margin: 8px 0 0;
+  color: #68756a;
 }
 
 /* Layout em 3 colunas */
@@ -245,9 +256,11 @@ function abrirMenuProjeto(projeto) {
     gap: 14px;
   }
 
-  .page-title {
-    font-size: 1.6rem;
+}
+
+@media (max-width: 760px) {
+  .projetos-container {
+    padding: 20px 16px 32px;
   }
 }
 </style>
-
