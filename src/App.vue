@@ -1,3 +1,4 @@
+```vue
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -11,7 +12,6 @@ const route = useRoute()
 const sidebarStore = useSidebarStore()
 
 const side = computed(() => route.meta.side ?? 'left')
-
 
 const isAuthRoute = computed(() => {
   return (
@@ -113,4 +113,4 @@ const isAuthRoute = computed(() => {
   }
 }
 </style>
-
+```
