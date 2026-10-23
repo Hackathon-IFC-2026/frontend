@@ -45,7 +45,7 @@ const isAuthRoute = computed(() => {
       <main class="app-content">
         <router-view v-slot="{ Component, route: r }">
           <transition name="page" mode="out-in">
-            <component :is="Component" :key="r.path" />
+            <component :is="Component" :key="r.fullPath" />
           </transition>
         </router-view>
       </main>
