@@ -12,7 +12,13 @@ const route = useRoute()
 const side = computed(() => route.meta.side ?? 'left')
 
 const showSidebar = computed(() =>
-  !['login', 'cadastro'].includes(route.name)
+  ![
+    'login',
+    'cadastro',
+    'recuperar-senha',
+    'verificacao-codigo',
+    'nova-senha',
+  ].includes(route.name)
 )
 </script>
 <template>
@@ -21,14 +27,14 @@ const showSidebar = computed(() =>
     :side="side"
   >
     <SidebarComponent v-if="showSidebar" />
-    <HeaderComponent />
+    <HeaderComponent v-if="!route.meta.requiresAuthBackground" />
     <router-view v-slot="{ Component, route: r }">
       <transition name="page" mode="out-in">
         <component :is="Component" :key="r.path" />
       </transition>
     </router-view>
     <ToastNotification />
-    <FooterComponent />
+    <FooterComponent v-if="!route.meta.requiresAuthBackground"/>
   </component>
 
 </template>
