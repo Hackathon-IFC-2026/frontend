@@ -206,6 +206,7 @@ const listaParticipantes = computed(() => {
 
 .dot-red {
   background-color: #ef4444;
+}
 
 .dot-yellow {
   background-color: #f59e0b;
