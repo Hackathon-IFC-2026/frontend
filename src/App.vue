@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import AuthBackground from './components/AuthBackground.vue'
 import ToastNotification from './components/ToastNotification.vue'
 import HeaderComponent from './components/HeaderComponent.vue'
+import FooterComponent from './components/FooterComponent.vue'
 
 const route = useRoute()
 const side = computed(() => route.meta.side ?? 'left')
@@ -19,6 +20,8 @@ const side = computed(() => route.meta.side ?? 'left')
       </transition>
     </router-view>
     <ToastNotification />
+    <FooterComponent />
   </component>
+
 </template>
 
