@@ -18,8 +18,8 @@ const routes = [
     meta: { requiresAuthBackground: true, side: 'left' }
   },
   {
-    path: '/home',
-    name: 'home',
+    path: '/inicio',
+    name: 'inicio',
     component: Home,
     meta: { requiresAuthBackground: false }
   }

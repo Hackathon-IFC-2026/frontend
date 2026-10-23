@@ -28,10 +28,37 @@
 
 <script setup>
 import { reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { useToastStore } from '../stores/toast'
 
-const form = reactive({ email: '', senha: '' })
+const router = useRouter()
+const authStore = useAuthStore()
+const toast = useToastStore()
 
-function entrar() {
-  console.log('login', { ...form })
+const form = reactive({
+  email: '',
+  senha: ''
+})
+
+async function entrar() {
+  try {
+    await authStore.login(form.email, form.senha)
+
+    toast.mostrar('Login realizado com sucesso!', 'success')
+    router.push('/inicio')
+
+  } catch (error) {
+    const mensagem = error.response?.data?.detail
+
+    if (mensagem === 'No active account found with the given credentials') {
+      toast.mostrar('E-mail ou senha incorretos.', 'error')
+    } else {
+      toast.mostrar(
+        mensagem || 'Não foi possível realizar o login.',
+        'error'
+      )
+    }
+  }
 }
 </script>

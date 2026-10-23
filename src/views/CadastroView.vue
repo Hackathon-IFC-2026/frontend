@@ -56,18 +56,72 @@
 
 <script setup>
 import { reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '../stores/toast'
 
-const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+const toast = useToastStore()
+const router = useRouter()
+const authStore = useAuthStore()
+
+const meses = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril',
+  'Maio', 'Junho', 'Julho', 'Agosto',
+  'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+]
+
 const anoAtual = new Date().getFullYear()
 const anos = Array.from({ length: 100 }, (_, i) => anoAtual - i)
 
-const form = reactive({ nome: '', email: '', dia: '', mes: '', ano: '', senha: '', confirma: '' })
+const form = reactive({
+  nome: '',
+  email: '',
+  dia: '',
+  mes: '',
+  ano: '',
+  senha: '',
+  confirma: ''
+})
 
-function enviar() {
+
+async function enviar() {
   if (form.senha !== form.confirma) {
-    alert('As senhas não coincidem.')
+    toast.mostrar('As senhas não coincidem.', 'error')
     return
   }
-  console.log('cadastro', { ...form })
+
+  if (form.senha.length < 8) {
+    toast.mostrar(
+      'A senha deve ter pelo menos 8 caracteres.',
+      'error'
+    )
+    return
+  }
+
+  try {
+    await authStore.cadastrar(form)
+
+    toast.mostrar(
+      'Cadastro realizado com sucesso!',
+      'success'
+    )
+
+    router.push('/login')
+
+  } catch (error) {
+    const dados = error.response?.data
+
+    let mensagem = 'Não foi possível realizar o cadastro.'
+
+    if (dados?.email) {
+      mensagem = 'Este e-mail já está cadastrado.'
+    } else if (dados?.password) {
+      mensagem = 'A senha informada não é válida.'
+    } else if (dados?.detail) {
+      mensagem = dados.detail
+    }
+
+    toast.mostrar(mensagem, 'error')
+  }
 }
 </script>
