@@ -14,7 +14,7 @@ export const useNotificacoesStore = defineStore('notificacoes', () => {
 
   // Buscar notificações da API (ou fallback para lista inicial)
   async function buscarNotificacoes() {
-    loading.value = truea
+    loading.value = true
     error.value = null
     try {
       const response = await api.get('/api/notificacoes/')
@@ -33,7 +33,7 @@ export const useNotificacoesStore = defineStore('notificacoes', () => {
           },
           {
             id: 2,
-            titulo: 'Bem-vindo ao Brasiva!',
+            titulo: 'Bem-vindo ao Kando!',
             mensagem: 'Explore todas as funcionalidades disponíveis na plataforma.',
             data: new Date(Date.now() - 86400000).toISOString(),
             lida: true,
