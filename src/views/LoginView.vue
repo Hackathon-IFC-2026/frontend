@@ -11,7 +11,7 @@
 
         <div class="field">
           <label for="senha">Senha</label>
-          <input id="senha" v-model="form.senha" type="password" placeholder="Digite sua senha aqui" autocomplete="current-password" required />
+          <PasswordInput id="senha" v-model="form.senha" placeholder="Digite sua senha aqui" autocomplete="current-password" required />
         </div>
 
         <button type="submit" class="btn">Entrar</button>
@@ -19,7 +19,7 @@
     </section>
 
     <section class="welcome">
-      <h1>Bem-vindo de volta!</h1>
+      <h1>Bem-vindo de volta ao<br>Kando!</h1>
       <p>Não possui conta?<br />Faça seu cadastro.</p>
       <RouterLink to="/cadastro" class="btn">Cadastrar-se</RouterLink>
     </section>
@@ -28,6 +28,7 @@
 
 <script setup>
 import { reactive } from 'vue'
+import PasswordInput from '../components/PasswordInput.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'

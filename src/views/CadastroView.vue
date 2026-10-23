@@ -1,7 +1,7 @@
 <template>
   <main class="auth-view auth-view--welcome-left">
     <section class="welcome">
-      <h1>Olá, bem-vindo!</h1>
+      <h1>Olá, bem-vindo ao<br>Kando!</h1>
       <p>Você já possui cadastro?<br />Ótimo, acesse sua conta.</p>
       <RouterLink to="/login" class="btn">Entrar</RouterLink>
     </section>
@@ -40,12 +40,12 @@
 
         <div class="field">
           <label for="senha">Senha</label>
-          <input id="senha" v-model="form.senha" type="password" placeholder="Digite sua senha aqui" autocomplete="new-password" required />
+          <PasswordInput id="senha" v-model="form.senha" placeholder="Digite sua senha aqui" autocomplete="new-password" required />
         </div>
 
         <div class="field">
           <label for="confirma">Confirme sua senha</label>
-          <input id="confirma" v-model="form.confirma" type="password" placeholder="Confirme sua senha aqui" autocomplete="new-password" required />
+          <PasswordInput id="confirma" v-model="form.confirma" placeholder="Confirme sua senha aqui" autocomplete="new-password" required />
         </div>
 
         <button type="submit" class="btn">Continuar</button>
@@ -56,6 +56,7 @@
 
 <script setup>
 import { reactive } from 'vue'
+import PasswordInput from '../components/PasswordInput.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '../stores/toast'
