@@ -9,6 +9,8 @@ import Tarefas from '../views/TarefasView.vue'
 import Calendario from '../views/CalendarioView.vue'
 import Configuracoes from '../views/ConfiguracoesView.vue'
 import KanbanView from '../views/KanbanView.vue'
+import Perfil from '../views/PerfilView.vue'
+import Notificacoes from '../views/NotificacoesView.vue'
 
 const routes = [
   {
@@ -73,6 +75,18 @@ const routes = [
     path: '/configuracoes',
     name: 'configuracoes',
     component: Configuracoes,
+    meta: { requiresAuthBackground: false },
+  },
+  {
+    path: '/perfil',
+    name: 'perfil',
+    component: Perfil,
+    meta: { requiresAuthBackground: false },
+  },
+  {
+    path: '/notificacoes',
+    name: 'notificacoes',
+    component: Notificacoes,
     meta: { requiresAuthBackground: false },
   },
 ]
