@@ -1,15 +1,12 @@
 <template>
   <div class="kanban-pagina" @click="fecharDropdowns">
-    <!-- Cabeçalho do Projeto -->
     <header class="projeto-cabecalho">
       <h1 class="projeto-titulo">{{ projeto.nome }}</h1>
       <p class="projeto-descricao">{{ projeto.descricao }}</p>
     </header>
 
-    <!-- Barra de Filtros e Botão Principal -->
     <div class="barra-acoes">
       <div class="filtros-grupo">
-        <!-- Dropdown: Todos (Filtro por Participante) -->
         <div class="dropdown-wrapper" @click.stop>
           <button
             type="button"
@@ -40,7 +37,6 @@
           </ul>
         </div>
 
-        <!-- Dropdown: Prioridades -->
         <div class="dropdown-wrapper" @click.stop>
           <button
             type="button"
@@ -72,7 +68,6 @@
         </div>
       </div>
 
-      <!-- Botão Principal: Adicionar Tarefa -->
       <button
         type="button"
         class="btn-adicionar-topo"
@@ -83,9 +78,7 @@
       </button>
     </div>
 
-    <!-- Área Principal: Colunas do Kanban + Painel de Participantes -->
     <section class="kanban-area">
-      <!-- 4 Colunas do Kanban -->
       <div
         v-for="coluna in colunas"
         :key="coluna.id"
@@ -96,12 +89,10 @@
         @dragleave="aoSairDaColuna($event, coluna.id)"
         @drop="aoSoltarNaColuna($event, coluna.id)"
       >
-        <!-- Cabeçalho Colorido da Coluna -->
         <div class="coluna-topo" :class="coluna.classeCor">
           <h2 class="coluna-titulo">{{ coluna.titulo }}</h2>
         </div>
 
-        <!-- Lista de Cards da Coluna -->
         <div class="coluna-cards">
           <div
             v-for="tarefa in obterTarefasDaColuna(coluna.id)"
@@ -118,7 +109,6 @@
           </div>
         </div>
 
-        <!-- Rodapé da Coluna (+ Adicionar tarefa) -->
         <div v-if="coluna.mostrarBotaoAdicionar" class="coluna-rodape">
           <div class="linha-divisoria-coluna"></div>
           <button
@@ -132,14 +122,12 @@
         </div>
       </div>
 
-      <!-- Painel Lateral Direito: Participantes -->
       <participantesKanbanComponent
         :participantes="participantes"
         @adicionar="modalParticipanteAberto = true"
       />
     </section>
 
-    <!-- Modal: Adicionar Nova Tarefa -->
     <div
       v-if="modalTarefaAberto"
       class="modal-overlay"
@@ -220,7 +208,6 @@
       </div>
     </div>
 
-    <!-- Modal: Adicionar Participante -->
     <div
       v-if="modalParticipanteAberto"
       class="modal-overlay"
@@ -274,7 +261,6 @@ import api from '/services/api.js'
 
 const route = useRoute()
 
-// Definição das 4 colunas com as cores exatas da imagem
 const colunas = [
   {
     id: 'atrasado',
@@ -302,9 +288,7 @@ const colunas = [
   },
 ]
 
-// =========================================================================
-// DADOS ESTÁTICOS INICIAIS (espelhando fielmente a imagem de referência)
-// =========================================================================
+// DADOS ESTÁTICOS
 const projetosMapeados = {
   1: { nome: 'Natal luz', descricao: 'Decoração e iluminação natalina da cidade.' },
   2: { nome: 'Reforma Praça Central', descricao: 'Paisagismo, bancos e iluminação pública.' },
@@ -367,9 +351,6 @@ const tarefas = ref([
   },
 ])
 
-// =========================================================================
-// FILTROS (Todos / Prioridades)
-// =========================================================================
 const dropdownAberto = ref(null)
 const filtroParticipante = ref('todos')
 const filtroPrioridade = ref('todas')
@@ -425,9 +406,6 @@ function obterTarefasDaColuna(colunaId) {
   return tarefasFiltradas.value.filter((t) => t.coluna === colunaId)
 }
 
-// =========================================================================
-// DRAG AND DROP (Arrastar e soltar entre colunas e reordenação)
-// =========================================================================
 const tarefaArrastadaId = ref(null)
 const colunaSobreposta = ref(null)
 
@@ -484,7 +462,7 @@ async function moverTarefaParaColuna(idTarefa, novaColuna, idCardAlvo = null) {
     tarefas.value.push(tarefaMovida)
   }
 
-  // INTEGRAÇÃO COM BACKEND (pronta para descomentar):
+  // INTEGRAÇÃO COM BACKEND
   /*
   try {
     await api.patch(`/api/tarefas/${tarefaMovida.id}/`, {
@@ -524,9 +502,6 @@ function aoSoltarSobreCard(event, colunaId, cardAlvoId) {
   }
 }
 
-// =========================================================================
-// CRIAÇÃO DE TAREFA E PARTICIPANTE + ESTRUTURA BACKEND
-// =========================================================================
 const modalTarefaAberto = ref(false)
 const modalParticipanteAberto = ref(false)
 
@@ -564,7 +539,7 @@ async function salvarNovaTarefa() {
     participantes: participantes.value.slice(0, 2),
   }
 
-  // INTEGRAÇÃO COM BACKEND (pronta para descomentar):
+  // INTEGRAÇÃO COM BACKEND
   /*
   try {
     const response = await api.post(`/api/projetos/${projeto.value.id}/tarefas/`, itemCriado)
@@ -587,7 +562,7 @@ async function salvarNovoParticipante() {
     avatar: null,
   }
 
-  // INTEGRAÇÃO COM BACKEND (pronta para descomentar):
+  // INTEGRAÇÃO COM BACKEND
   /*
   try {
     const response = await api.post(`/api/projetos/${projeto.value.id}/participantes/`, novoMembro)
@@ -604,7 +579,7 @@ async function salvarNovoParticipante() {
 
 async function buscarDadosKanban() {
   try {
-    void api // Mantém a referência pronta para uso ao descomentar abaixo
+    void api
     // const idProjeto = route.params.id || 1
     // const { data } = await api.get(`/api/projetos/${idProjeto}/`)
     // projeto.value = {
@@ -633,54 +608,52 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 .kanban-pagina {
   width: 100%;
-  max-width: 1440px;
+  max-width: 1360px;
   margin: 0 auto;
   font-family: 'Poppins', sans-serif;
   color: #000000;
   box-sizing: border-box;
-  padding: 6px 4px 24px;
+  padding: 10px 10px 30px;
 }
 
-/* Cabeçalho do Projeto */
 .projeto-cabecalho {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .projeto-titulo {
   margin: 0;
-  font-size: 2.35rem;
-  font-weight: 500;
-  color: #000000;
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #111827;
   line-height: 1.15;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.5px;
 }
 
 .projeto-descricao {
-  margin: 4px 0 0 0;
-  font-size: 1.05rem;
+  margin: 6px 0 0 0;
+  font-size: 0.95rem;
   font-weight: 400;
-  color: #999999; /* #999999 100% */
+  color: #9ca3af;
 }
 
-/* Barra de Filtros e Botão Superior */
 .barra-acoes {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .filtros-grupo {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -691,49 +664,51 @@ onMounted(() => {
 .btn-filtro {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 132px;
-  padding: 6px 20px;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 110px;
+  padding: 6px 16px;
   background-color: #ffffff;
-  color: #4e7855; /* #4E7855 100% */
-  border: 1.5px solid #4e7855;
+  color: #284431;
+  border: 1px solid #718a77;
   border-radius: 999px;
   font-family: 'Poppins', sans-serif;
-  font-size: 1rem;
+  font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-filtro:hover {
-  background-color: rgba(78, 120, 85, 0.08);
+  background-color: rgba(78, 120, 85, 0.05);
+  border-color: #284431;
 }
 
 .icone-seta {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
+  color: #284431;
 }
 
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  min-width: 170px;
+  min-width: 160px;
   margin: 0;
   padding: 6px;
   list-style: none;
   background-color: #ffffff;
-  border: 1px solid rgba(78, 120, 85, 0.3);
+  border: 1px solid rgba(78, 120, 85, 0.25);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   z-index: 30;
 }
 
 .dropdown-item {
-  padding: 7px 12px;
+  padding: 6px 12px;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #1f2937;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -741,8 +716,8 @@ onMounted(() => {
 
 .dropdown-item:hover,
 .dropdown-item.ativo {
-  background-color: rgba(78, 120, 85, 0.12);
-  color: #4e7855;
+  background-color: rgba(78, 120, 85, 0.1);
+  color: #284431;
   font-weight: 600;
 }
 
@@ -750,15 +725,15 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  background-color: #4e7855; /* #4E7855 100% */
-  color: #ffffff; /* #FFFFFF 100% */
+  gap: 8px;
+  background-color: #2b4532; /* Verde escuro idêntico ao da imagem */
+  color: #ffffff;
   border: none;
   border-radius: 999px;
-  padding: 8px 28px;
+  padding: 8px 24px;
   font-family: 'Poppins', sans-serif;
-  font-size: 1.08rem;
-  font-weight: 500;
+  font-size: 0.88rem;
+  font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.15s ease;
 }
@@ -769,23 +744,22 @@ onMounted(() => {
 }
 
 .icone-mais-topo {
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   line-height: 1;
-  font-weight: 500;
+  font-weight: 400;
 }
 
-/* Grid Principal: 4 Colunas Kanban + 1 Coluna Participantes */
 .kanban-area {
   display: grid;
-  grid-template-columns: repeat(4, minmax(185px, 1fr)) minmax(205px, 1.05fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(180px, 1fr)) minmax(180px, 0.95fr);
+  gap: 8px;
   align-items: stretch;
   width: 100%;
 }
 
 .kanban-coluna {
-  background-color: rgba(220, 220, 220, 0.2); /* #DCDCDC 20% */
-  border-radius: 16px;
+  background-color: #ebebeb;
+  border-radius: 12px;
   min-height: 560px;
   display: flex;
   flex-direction: column;
@@ -794,16 +768,18 @@ onMounted(() => {
 }
 
 .kanban-coluna.coluna-drop-ativa {
-  background-color: rgba(78, 120, 85, 0.08);
+  background-color: #e2e8e3;
   outline: 2px dashed #4e7855;
   outline-offset: -2px;
 }
 
-/* Cabeçalhos das Colunas com Cores e Opacidades Exatas */
 .coluna-topo {
-  height: 68px;
-  border-radius: 16px;
-  padding: 0 16px;
+  height: 56px;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding: 0 14px;
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -812,47 +788,41 @@ onMounted(() => {
 
 .coluna-titulo {
   margin: 0;
-  font-size: 1.08rem;
-  font-weight: 500;
-  color: #000000; /* #000000 100% */
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #000000;
 }
 
-/* #FF0000 30% */
 .topo-atrasado {
-  background-color: rgba(255, 0, 0, 0.3);
+  background-color: #f18c8e;
 }
 
-/* #989191 30% */
 .topo-fazer {
-  background-color: rgba(152, 145, 145, 0.3);
+  background-color: #bebebe;
 }
 
-/* #675CFF 30% */
 .topo-em-processo {
-  background-color: rgba(103, 92, 255, 0.3);
+  background-color: #b3a4e1;
 }
 
-/* #0BE43F 30% */
 .topo-concluido {
-  background-color: rgba(11, 228, 63, 0.3);
+  background-color: #a4d8a5;
 }
 
-/* Lista de Cards */
 .coluna-cards {
   flex: 1;
-  padding: 12px 10px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .card-slot {
   width: 100%;
 }
 
-/* Rodapé de cada Coluna (+ Adicionar tarefa) */
 .coluna-rodape {
-  padding: 6px 14px 14px;
+  padding: 6px 12px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -860,26 +830,26 @@ onMounted(() => {
 }
 
 .linha-divisoria-coluna {
-  width: 88%;
+  width: 90%;
   height: 1px;
-  background-color: rgba(78, 120, 85, 0.55);
-  margin-bottom: 10px;
+  background-color: #3b5742;
+  margin-bottom: 8px;
 }
 
 .btn-adicionar-coluna {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   background: transparent;
   border: none;
-  color: #4e7855; /* #4E7855 100% */
+  color: #3b5742;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-size: 0.72rem;
+  font-weight: 600;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
+  padding: 2px 6px;
+  border-radius: 6px;
   transition: background-color 0.2s ease;
 }
 
@@ -888,12 +858,11 @@ onMounted(() => {
 }
 
 .icone-mais-coluna {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   line-height: 1;
-  font-weight: 400;
+  font-weight: 500;
 }
 
-/* Modais */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1020,7 +989,7 @@ onMounted(() => {
 
 @media (max-width: 767px) {
   .projeto-titulo {
-    font-size: 1.75rem;
+    font-size: 1.65rem;
   }
 
   .kanban-area {
@@ -1036,4 +1005,3 @@ onMounted(() => {
   }
 }
 </style>
-

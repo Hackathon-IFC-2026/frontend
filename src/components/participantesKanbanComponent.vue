@@ -49,21 +49,23 @@ defineEmits(['adicionar'])
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 .painel-participantes {
-  background-color: rgba(220, 220, 220, 0.2); /* #DCDCDC 20% */
-  border-radius: 16px;
-  padding: 18px 16px 20px;
+  background-color: #ffffff;
+  border-radius: 14px;
+  padding: 18px 14px 16px;
   font-family: 'Poppins', sans-serif;
   box-sizing: border-box;
   width: 100%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   align-self: flex-start;
 }
 
 .titulo-participantes {
   margin: 0 0 16px 0;
-  text-align: center;
-  font-size: 1.02rem;
-  font-weight: 600;
+  text-align: left;
+  font-size: 0.88rem;
+  font-weight: 700;
   color: #000000;
+  padding-left: 2px;
 }
 
 .lista-participantes {
@@ -78,14 +80,14 @@ defineEmits(['adicionar'])
 .item-participante {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .avatar-participante {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 1px solid #4e7855;
+  border: 1px solid #718a77;
   background-color: transparent;
   overflow: hidden;
   flex-shrink: 0;
@@ -101,16 +103,16 @@ defineEmits(['adicionar'])
 }
 
 .nome-participante {
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 500;
-  color: #4e7855;
+  color: #2b4532;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .acao-participantes {
-  margin-top: 22px;
+  margin-top: 24px;
   display: flex;
   justify-content: center;
 }
@@ -118,14 +120,15 @@ defineEmits(['adicionar'])
 .btn-adicionar-participante {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background-color: #ffffff;
-  color: #4e7855;
-  border: 1px solid #4e7855;
+  justify-content: center;
+  gap: 4px;
+  background-color: transparent;
+  color: #3b5742;
+  border: 1px solid #718a77;
   border-radius: 999px;
-  padding: 5px 12px;
+  padding: 2px 10px;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -133,12 +136,12 @@ defineEmits(['adicionar'])
 }
 
 .btn-adicionar-participante:hover {
-  background-color: #4e7855;
+  background-color: #3b5742;
   color: #ffffff;
 }
 
 .icone-mais {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   line-height: 1;
   font-weight: 400;
 }

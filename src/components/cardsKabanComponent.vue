@@ -103,9 +103,9 @@ function aoFinalizarArrasto() {
 
 .kanban-card {
   background-color: #ffffff;
-  border-radius: 14px;
-  padding: 14px 14px 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  padding: 12px 14px 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   font-family: 'Poppins', sans-serif;
   cursor: grab;
   user-select: none;
@@ -116,7 +116,7 @@ function aoFinalizarArrasto() {
 
 .kanban-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
 .kanban-card:active {
@@ -130,32 +130,32 @@ function aoFinalizarArrasto() {
 }
 
 .card-titulo {
-  margin: 0 0 8px 0;
-  font-size: 0.9rem;
-  font-weight: 500;
+  margin: 0 0 4px 0;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: #000000;
-  line-height: 1.3;
+  line-height: 1.25;
   word-break: break-word;
 }
 
 .card-datas {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: 12px;
+  gap: 2px;
+  margin-bottom: 8px;
 }
 
 .data-linha {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
+  gap: 5px;
+  font-size: 0.65rem;
   font-weight: 400;
   color: #999999;
 }
 
 .icone-calendario {
-  font-size: 13px;
+  font-size: 11px;
   color: #999999;
   line-height: 1;
 }
@@ -164,18 +164,19 @@ function aoFinalizarArrasto() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .avatares-tarefa {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .avatar-circulo {
-  width: 21px;
-  height: 21px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background-color: #d9d9d9;
   overflow: hidden;
@@ -192,27 +193,29 @@ function aoFinalizarArrasto() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 14px;
+  padding: 1px 12px;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.4;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
-/* Cores exatas da paleta (FF0000 100% sobre FF0000 30%) */
+/* Alta: fundo rosa claro suave com texto vermelho */
 .prioridade-alta {
-  background-color: rgba(255, 0, 0, 0.3);
-  color: #ff0000;
+  background-color: #ffd6d9;
+  color: #ff334b;
 }
 
+/* Média: fundo laranja claro suave */
 .prioridade-media {
-  background-color: rgba(255, 145, 0, 0.25);
-  color: #e66a00;
+  background-color: #ffebd4;
+  color: #e67300;
 }
 
+/* Baixa: fundo amarelo claro suave com texto dourado/amarelo */
 .prioridade-baixa {
-  background-color: rgba(255, 208, 0, 0.24);
-  color: #f5b000;
+  background-color: #fff2cc;
+  color: #e6a800;
 }
 </style>
 
