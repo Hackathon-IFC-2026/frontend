@@ -1,3 +1,4 @@
+
 <template>
   <main class="auth-view auth-view--welcome-right">
     <section class="form-side">
@@ -34,6 +35,7 @@ import { useToastStore } from '../stores/toast'
 const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToastStore()
+const mostrarSenha = ref(false)
 
 const form = reactive({
   email: '',
