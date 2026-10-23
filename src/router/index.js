@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/LoginView.vue'
 import Cadastro from '../views/CadastroView.vue'
-import Home from '../views/HomeView.vue'
+import Projetos from '../views/ProjetosView.vue'
+import Tarefas from '../views/TarefasView.vue'
+import Calendario from '../views/CalendarioView.vue'
+import Configuracoes from '../views/ConfiguracoesView.vue'
 
 const routes = [
   { path: '/', redirect: '/cadastro' },
@@ -18,9 +21,27 @@ const routes = [
     meta: { requiresAuthBackground: true, side: 'left' }
   },
   {
-    path: '/inicio',
-    name: 'inicio',
-    component: Home,
+    path: '/projetos',
+    name: 'projetos',
+    component: Projetos,
+    meta: { requiresAuthBackground: false }
+  },
+  {
+    path: '/tarefas',
+    name: 'tarefas',
+    component: Tarefas,
+    meta: { requiresAuthBackground: false }
+  },
+  {
+    path: '/calendario',
+    name: 'calendario',
+    component: Calendario,
+    meta: { requiresAuthBackground: false }
+  },
+  {
+    path: '/configuracoes',
+    name: 'configuracoes',
+    component: Configuracoes,
     meta: { requiresAuthBackground: false }
   }
 ]
