@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import { requestPasswordReset } from '@/services/passwordReset'
+import {
+  getPasswordResetErrorMessage,
+  requestPasswordReset,
+} from '@/services/passwordReset'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -10,23 +13,38 @@ const feedback = ref('')
 const hasError = ref(false)
 
 async function handleSubmit() {
+  if (isSubmitting.value) return
+
+  const normalizedEmail = email.value.trim()
+  if (!normalizedEmail) {
+    hasError.value = true
+    feedback.value = 'Informe o e-mail cadastrado.'
+    return
+  }
+
   isSubmitting.value = true
   feedback.value = ''
   hasError.value = false
 
   try {
-    await requestPasswordReset(email.value.trim())
-    sessionStorage.setItem('passwordResetEmail', email.value.trim())
+    sessionStorage.removeItem('passwordResetRequestAccepted')
+    sessionStorage.removeItem('passwordResetCode')
+    sessionStorage.removeItem('passwordResetEmail')
+    await requestPasswordReset(normalizedEmail)
+    sessionStorage.setItem('passwordResetEmail', normalizedEmail)
+    sessionStorage.setItem('passwordResetRequestAccepted', 'true')
     await router.push({ name: 'verificacao-codigo' })
-    feedback.value =
-      'Se existir uma conta associada a esse e-mail, enviaremos as instruções de recuperação.'
-  } catch {
+  } catch (error) {
     hasError.value = true
-    feedback.value = 'Não foi possível processar a solicitação agora. Tente novamente em instantes.'
+    feedback.value = getPasswordResetErrorMessage(
+      error,
+      'Não foi possível processar a solicitação agora. Tente novamente em instantes.',
+    )
   } finally {
     isSubmitting.value = false
   }
 }
+
 </script>
 
 <template>
@@ -42,22 +60,20 @@ async function handleSubmit() {
         <form class="form" @submit.prevent="handleSubmit">
           <div class="field">
             <label for="email">E-mail</label>
-          <input
-            id="email"
-            v-model.trim="email"
-            type="email"
-            name="email"
-            autocomplete="email"
-            placeholder="digite seu e-mail aqui"
-            required
-            :disabled="isSubmitting"
-          />
+            <input
+              id="email"
+              v-model.trim="email"
+              type="email"
+              name="email"
+              autocomplete="email"
+              placeholder="digite seu e-mail aqui"
+              required
+              :disabled="isSubmitting"
+            />
           </div>
 
-
           <button type="submit" :disabled="isSubmitting" class="btn">
-            {{ isSubmitting ? 'Continuando...' : 'Continuar' }}
-
+            {{ isSubmitting ? 'Enviando...' : 'Continuar' }}
           </button>
 
           <p
@@ -71,7 +87,7 @@ async function handleSubmit() {
           </p>
         </form>
 
-        <RouterLink class="back-link" to="/">Voltar ao início</RouterLink>
+        <RouterLink class="back-link" to="/login">Voltar ao login</RouterLink>
       </div>
     </section>
 

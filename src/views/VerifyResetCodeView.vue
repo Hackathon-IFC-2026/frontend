@@ -1,7 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { verifyPasswordResetCode } from '@/services/passwordReset'
+import {
+  getPasswordResetErrorMessage,
+  requestPasswordReset,
+  verifyPasswordResetCode,
+} from '@/services/passwordReset'
 
 const router = useRouter()
 const email = sessionStorage.getItem('passwordResetEmail') ?? ''
@@ -14,10 +18,19 @@ const hasError = ref(false)
 onMounted(() => {
   if (!email) {
     router.replace({ name: 'recuperar-senha' })
+    return
+  }
+
+  if (sessionStorage.getItem('passwordResetRequestAccepted')) {
+    sessionStorage.removeItem('passwordResetRequestAccepted')
+    feedback.value =
+      'Se existir uma conta associada a esse e-mail, enviaremos as instruções de recuperação.'
   }
 })
 
 async function handleSubmit() {
+  if (isSubmitting.value || isVerified.value) return
+
   feedback.value = ''
   hasError.value = false
 
@@ -34,35 +47,42 @@ async function handleSubmit() {
     sessionStorage.setItem('passwordResetCode', code.value)
     isVerified.value = true
     await router.push({ name: 'nova-senha' })
-  } catch {
+  } catch (error) {
     hasError.value = true
-    feedback.value = 'O código é inválido ou expirou. Confira e tente novamente.'
+    feedback.value = getPasswordResetErrorMessage(
+      error,
+      'Não foi possível verificar o código agora. Tente novamente em instantes.',
+    )
   } finally {
     isSubmitting.value = false
   }
 }
 
 async function handleResend() {
+  if (isResending.value || isSubmitting.value) return
+
   isResending.value = true
   feedback.value = ''
   hasError.value = false
 
   try {
-    const { requestPasswordReset } = await import('@/services/passwordReset')
+    sessionStorage.removeItem('passwordResetCode')
     await requestPasswordReset(email)
+    digits.value = Array(6).fill('')
     feedback.value = 'Se existir uma conta associada a esse e-mail, enviaremos um novo código.'
-  } catch {
+  } catch (error) {
     hasError.value = true
-    feedback.value = 'Não foi possível solicitar outro código agora. Tente novamente em instantes.'
+    feedback.value = getPasswordResetErrorMessage(
+      error,
+      'Não foi possível solicitar outro código agora. Tente novamente em instantes.',
+    )
   } finally {
     isResending.value = false
   }
 }
 
-
 const digits = ref(Array(6).fill(''))
 const code = computed(() => digits.value.join(''))
-
 
 function handleInput(event, index) {
   const input = event.target
@@ -83,36 +103,51 @@ function handleBackspace(event, index) {
   }
 }
 
+function handlePaste(event, index) {
+  const pastedCode = event.clipboardData.getData('text').replace(/\D/g, '')
+  if (!pastedCode) return
 
+  event.preventDefault()
+  const availableDigits = 6 - index
+  const codeToInsert = pastedCode.slice(0, availableDigits)
 
+  for (let offset = 0; offset < codeToInsert.length; offset += 1) {
+    digits.value[index + offset] = codeToInsert[offset]
+  }
+
+  const focusIndex = Math.min(index + codeToInsert.length, 5)
+  event.target.parentElement.children[focusIndex]?.focus()
+}
 </script>
 
 <template>
   <main class="auth-view auth-view--recovery">
     <section class="verify-panel" aria-labelledby="verify-title">
-      <h1 class="form-title">Código de Recuperação</h1>
+      <h1 id="verify-title" class="form-title">Código de Recuperação</h1>
+
+      <p class="description">
+        Insira o código enviado para <strong>{{ email }}</strong>:
+      </p>
 
       <form class="form" @submit.prevent="handleSubmit">
-      <p class="description">Insira o código enviado por email no campo abaixo:</p>
-
-      <div class="verification-code">
-        <input
-          v-for="(_, index) in 6"
-          :key="index"
-          v-model="digits[index]"
-          type="text"
-          inputmode="numeric"
-          maxlength="1"
-          pattern="[0-9]"
-          :autocomplete="index === 0 ? 'one-time-code' : 'off'"
-          :aria-label="`Dígito ${index + 1} do código`"
-          aria-labelledby="verification-code-label"
-          required
-          :disabled="isSubmitting || isVerified"
-          @input="handleInput($event, index)"
-          @keydown.backspace="handleBackspace($event, index)"
-        />
-      </div>
+        <div class="verification-code">
+          <input
+            v-for="(_, index) in 6"
+            :key="index"
+            v-model="digits[index]"
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            pattern="[0-9]"
+            :autocomplete="index === 0 ? 'one-time-code' : 'off'"
+            :aria-label="`Dígito ${index + 1} do código`"
+            required
+            :disabled="isSubmitting || isVerified"
+            @input="handleInput($event, index)"
+            @keydown.backspace="handleBackspace($event, index)"
+            @paste="handlePaste($event, index)"
+          />
+        </div>
         <p
           v-if="feedback"
           class="feedback"
@@ -130,8 +165,6 @@ function handleBackspace(event, index) {
         </button>
       </form>
       <RouterLink class="back-link" to="/recuperar-senha">Voltar</RouterLink>
-
-
       <button
         class="back-link"
         type="button"
@@ -157,25 +190,12 @@ main{
 
 .description{
   margin: 20px auto;
+  text-align: center;
 }
 
 .btn {
   padding: 16px 10px;
   margin: 10px 0 0 0;
-}
-
-.text-button {
-  display: block;
-  margin-top: 18px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #315e3b;
-  cursor: pointer;
-  font: inherit;
-  font-size: 14px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .verification-code {

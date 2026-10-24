@@ -13,6 +13,9 @@
           <label for="senha">Senha</label>
           <PasswordInput id="senha" v-model="form.senha" placeholder="Digite sua senha aqui" autocomplete="current-password" required />
         </div>
+        <RouterLink class="forgot-password-link" to="/recuperar-senha">
+          Esqueceu sua senha?
+        </RouterLink>
         <button type="submit" class="btn">Entrar</button>
       </form>
     </section>
@@ -102,5 +105,12 @@ async function entrar() {
 
 .welcome p + .btn {
   margin-top: 12px;
+}
+
+.forgot-password-link {
+  align-self: center;
+  color: #fff9e3;
+  font-size: 0.95rem;
+  text-underline-offset: 3px;
 }
 </style>

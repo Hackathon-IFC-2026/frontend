@@ -37,6 +37,17 @@ npm run dev
 npm run build
 ```
 
+### API base URL
+
+The frontend uses `https://backend.class.fabricadesoftware.ifc.edu.br` by
+default. The API client reads `VITE_API_URL` (as already used by the project's
+environment file); `VITE_API_BASE_URL` is also supported for compatibility.
+To use the local backend, override the setting when starting Vite:
+
+```sh
+VITE_API_URL=http://127.0.0.1:8000 npm run dev -- --host 127.0.0.1 --port 5173
+```
+
 ### Lint with [ESLint](https://eslint.org/)
 
 ```sh
