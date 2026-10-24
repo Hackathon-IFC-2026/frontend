@@ -209,6 +209,20 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   transform: rotate(225deg) translate(-2px, -1px);
 }
 
+.texto-gatilho {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filtro-gatilho.compacto {
+  min-height: 40px;
+  gap: 8px;
+  padding: 0 11px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+}
+
 .filtro-gatilho.tom--fazer {
   border-color: #d6e0d7;
   background: #edf1ed;
@@ -314,11 +328,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   background: #9aa99c;
 }
 
-.tom--fazer .indicador-opcao {
+.tom--fazer .indicador-opcao,
+.tom--a_fazer .indicador-opcao {
   background: #77917a;
 }
 
 .tom--em_processo .indicador-opcao,
+.tom--em_andamento .indicador-opcao,
 .tom--media .indicador-opcao {
   background: #db8a27;
 }
@@ -338,13 +354,15 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   font-size: 1rem;
 }
 
-.tom--fazer.selecionada {
+.tom--fazer.selecionada,
+.tom--a_fazer.selecionada {
   border-color: #d6e0d7;
   background: #edf1ed;
   color: #526653;
 }
 
 .tom--em_processo.selecionada,
+.tom--em_andamento.selecionada,
 .tom--media.selecionada {
   border-color: #f2d6af;
   background: #fff6e9;
@@ -362,5 +380,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   border-color: #f1caca;
   background: #fff0f0;
   color: #b42318;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filtro-gatilho,
+  .filtro-gatilho .seta,
+  .filtro-opcao {
+    transition: none;
+  }
 }
 </style>

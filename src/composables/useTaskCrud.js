@@ -168,14 +168,25 @@ export function useTaskCrud() {
   }
 
   watch(projetoId, async id => {
-    tarefaSelecionada.value = null
+    if (!route.query.tarefa) {
+      tarefaSelecionada.value = null
+    }
     erro.value = ''
     try {
       await store.listarTarefas(id)
+      if (route.query.tarefa) {
+        tarefaSelecionada.value = Number(route.query.tarefa)
+      }
     } catch {
       erro.value = 'Não foi possível carregar as tarefas.'
     }
   }, { immediate: true })
+
+  watch(() => route.query.tarefa, (tarefaId) => {
+    if (tarefaId) {
+      tarefaSelecionada.value = Number(tarefaId)
+    }
+  })
 
   return {
     projetoId,

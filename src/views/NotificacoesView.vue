@@ -22,21 +22,13 @@
         </div>
 
         <div class="card-container">
-          <!-- Filtros de Abas -->
-          <div class="tabs">
-            <button
-              :class="{ active: filtro === 'todas' }"
-              @click="filtro = 'todas'"
-            >
-              Todas ({{ notificacoesStore.notificacoes.length }})
-            </button>
-            <button
-              :class="{ active: filtro === 'naoLidas' }"
-              @click="filtro = 'naoLidas'"
-            >
-              Não lidas ({{ notificacoesStore.naoLidasCount }})
-            </button>
-          </div>
+          <FiltroDropdown
+            class="filtro-notificacoes"
+            v-model="filtro"
+            :options="opcoesFiltro"
+            label="Filtrar notificações"
+            compacto
+          />
 
           <!-- Estado de Carregamento -->
           <div v-if="notificacoesStore.loading" class="state-container">
@@ -108,10 +100,23 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import FiltroDropdown from '@/components/shared/FiltroDropdown.vue'
 import { useNotificacoesStore } from '@/stores/notificacoes'
 
 const notificacoesStore = useNotificacoesStore()
 const filtro = ref('todas')
+const opcoesFiltro = computed(() => [
+  {
+    value: 'todas',
+    label: `Todas (${notificacoesStore.notificacoes.length})`,
+    tom: 'neutro',
+  },
+  {
+    value: 'naoLidas',
+    label: `Não lidas (${notificacoesStore.naoLidasCount})`,
+    tom: 'neutro',
+  },
+])
 
 const notificacoesFiltradas = computed(() => {
   if (filtro.value === 'naoLidas') {
@@ -211,29 +216,9 @@ onMounted(() => {
   max-width: 900px;
 }
 
-.tabs {
-  display: flex;
-  gap: 10px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 12px;
+.filtro-notificacoes {
+  max-width: 260px;
   margin-bottom: 15px;
-}
-
-.tabs button {
-  background: none;
-  border: none;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #777;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.tabs button.active {
-  background-color: #e4f4e6;
-  color: #1A3721;
 }
 
 .lista-notificacoes {

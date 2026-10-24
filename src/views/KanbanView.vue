@@ -44,15 +44,17 @@
       @created="tarefaCriada"
     />
 
-    <TaskDetails
-      v-if="tarefaSelecionada !== null"
-      :task-id="tarefaSelecionada"
-      :usuario-atual-id="usuarioAtual.id"
-      :is-admin="isAdmin"
-      @close="tarefaSelecionada = null"
-      @updated="atualizarQuadro"
-      @deleted="atualizarQuadro"
-    />
+    <Transition name="task-popup">
+      <TaskDetails
+        v-if="tarefaSelecionada !== null"
+        :task-id="tarefaSelecionada"
+        :usuario-atual-id="usuarioAtual.id"
+        :is-admin="isAdmin"
+        @close="tarefaSelecionada = null"
+        @updated="atualizarQuadro"
+        @deleted="atualizarQuadro"
+      />
+    </Transition>
 
     <ParticipantModal
       v-model="modalParticipanteAberto"
@@ -132,6 +134,36 @@ function onAdicionarParticipante(nome) {
 .mensagem-erro {
   color: #c0392b;
   font-size: 12px;
+}
+
+.task-popup-enter-active,
+.task-popup-leave-active {
+  transition: opacity 220ms ease;
+}
+
+.task-popup-enter-from,
+.task-popup-leave-to {
+  opacity: 0;
+}
+
+.task-popup-enter-active :deep(.task-modal),
+.task-popup-leave-active :deep(.task-modal) {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.task-popup-enter-from :deep(.task-modal),
+.task-popup-leave-to :deep(.task-modal) {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-popup-enter-active,
+  .task-popup-leave-active,
+  .task-popup-enter-active :deep(.task-modal),
+  .task-popup-leave-active :deep(.task-modal) {
+    transition: none;
+  }
 }
 
 @media (max-width: 1050px) {

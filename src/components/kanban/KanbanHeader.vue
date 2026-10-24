@@ -92,6 +92,22 @@ const props = defineProps({
   }
 })
 
+const opcoesPrioridade = [
+  { value: 'todas', label: 'Todas as prioridades', tom: 'neutro' },
+  { value: 'alta', label: 'Alta', tom: 'alta' },
+  { value: 'media', label: 'Média', tom: 'media' },
+  { value: 'baixa', label: 'Baixa', tom: 'baixa' },
+]
+
+const opcoesParticipantes = computed(() => [
+  { value: 'todos', label: 'Todos os responsáveis', tom: 'neutro' },
+  ...props.participantes.map((pessoa) => ({
+    value: String(pessoa.id),
+    label: pessoa.nome,
+    tom: 'neutro',
+  })),
+])
+
 defineEmits([
   'criar-tarefa',
   'update:busca',
@@ -108,7 +124,7 @@ defineEmits([
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
@@ -257,9 +273,7 @@ defineEmits([
   padding: 8px 0;
   border: 0;
   outline: 0;
-  background: transparent;
-  color: #1a3721;
-  font: 0.8rem Poppins, sans-serif;
+  font: 12px Poppins, sans-serif;
 }
 
 @media (max-width: 600px) {
@@ -276,6 +290,19 @@ defineEmits([
   .toolbar > .filtro-dropdown {
     flex: 1 1 0;
     min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-criar,
+  .btn-criar .material-symbols-outlined {
+    transition: none;
+  }
+
+  .btn-criar:hover,
+  .btn-criar:active,
+  .btn-criar:hover .material-symbols-outlined {
+    transform: none;
   }
 }
 </style>

@@ -56,6 +56,7 @@ const routes = [
   },
   {
     path: '/kanban/:id?',
+    alias: '/projetos/:id',
     name: 'projeto-detalhes',
     component: KanbanView,
     meta: { requiresAuthBackground: false },
