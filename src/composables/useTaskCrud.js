@@ -1,32 +1,40 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTaskStore } from '@/stores/taskStore'
+import { useAuthStore } from '@/stores/auth'
+import { useProjectHistoryStore } from '@/stores/projectHistory'
 
 export function useTaskCrud() {
   const route = useRoute()
   const store = useTaskStore()
+  const authStore = useAuthStore()
+  const projectHistoryStore = useProjectHistoryStore()
   const projetoId = computed(() => Number(route.params.id || 1))
 
-  // Dados temporários até integrar
-  const usuarioAtual = ref({ id: 1, nome: 'Ana' })
-  const isAdmin = ref(true)
-
-  const projetos = {
-    1: { nome: 'Natal Luz', descricao: 'Organização das atividades e entregas do projeto.' },
-    2: { nome: 'Reforma Praça Central', descricao: 'Planejamento e execução das melhorias.' }
-  }
-
-  const projeto = computed(() => projetos[projetoId.value] || {
+  const usuarioAtual = computed(() => authStore.usuario)
+  const projeto = computed(() => projectHistoryStore.projetoPorId(projetoId.value) || {
     nome: 'Projeto Kando',
     descricao: 'Gerenciamento colaborativo de tarefas.'
   })
 
-  const participantes = ref([
-    { id: 1, nome: 'Ana' },
-    { id: 2, nome: 'Julia' },
-    { id: 3, nome: 'Amanda' },
-    { id: 4, nome: 'Anna' }
-  ])
+  const creatorId = computed(() =>
+    projectHistoryStore.projetoPorId(projetoId.value)?.creatorId ?? null,
+  )
+  const isAdmin = computed(() =>
+    Boolean(
+      usuarioAtual.value?.id &&
+      creatorId.value !== null &&
+      String(usuarioAtual.value.id) === String(creatorId.value),
+    ),
+  )
+  const participantes = computed(() =>
+    projectHistoryStore.participantesDoProjeto(projetoId.value),
+  )
+  const isMember = computed(() =>
+    participantes.value.some(
+      (participante) => String(participante.id) === String(usuarioAtual.value?.id),
+    ),
+  )
 
   const colunas = [
     { id: 'a_fazer', nome: 'A fazer', classe: 'coluna-fazer' },
@@ -49,6 +57,17 @@ export function useTaskCrud() {
   const novoParticipante = ref('')
   const colunaSobreposta = ref(null)
   const tarefaArrastadaId = ref(null)
+
+  onMounted(async () => {
+    if (authStore.usuario?.id || !localStorage.getItem('access_token')) return
+
+    try {
+      await authStore.buscarUsuario()
+    } catch (error) {
+      projectHistoryStore.erro =
+        error.response?.data?.detail || 'Não foi possível identificar o usuário atual.'
+    }
+  })
 
   function responsaveisDaTarefa(tarefa) {
     return (tarefa.responsaveis || []).map(pessoa => {
@@ -106,7 +125,7 @@ export function useTaskCrud() {
 
   function podeGerenciar(tarefa) {
     return isAdmin.value || responsaveisDaTarefa(tarefa)
-      .some(p => Number(p.id) === Number(usuarioAtual.value.id))
+      .some(p => Number(p.id) === Number(usuarioAtual.value?.id))
   }
 
   function abrirCadastro(status = 'a_fazer') {
@@ -162,16 +181,74 @@ export function useTaskCrud() {
   function adicionarParticipante() {
     const nome = novoParticipante.value.trim()
     if (!nome) return
-    participantes.value.push({ id: Date.now(), nome })
+    try {
+      projectHistoryStore.adicionarParticipante(projetoId.value, {
+        id: Date.now(),
+        nome,
+      })
+    } catch (error) {
+      projectHistoryStore.erro = error.message || 'Não foi possível adicionar o participante.'
+      return
+    }
     novoParticipante.value = ''
     modalParticipanteAberto.value = false
   }
 
-  watch(projetoId, async id => {
+  async function removerParticipante(participante) {
+    if (!isAdmin.value) {
+      projectHistoryStore.erro = 'Somente o criador pode remover participantes.'
+      return
+    }
+
+    const confirmado = window.confirm(
+      `Remover ${participante.nome} do projeto? As tarefas pendentes atribuídas a essa pessoa serão encaminhadas ao histórico deste projeto; tarefas concluídas serão preservadas.`,
+    )
+    if (!confirmado) return
+
+    try {
+      await projectHistoryStore.removerParticipante(
+        projetoId.value,
+        participante.id,
+        usuarioAtual.value.id,
+      )
+    } catch (error) {
+      projectHistoryStore.erro = error.message ||
+        'Não foi possível remover o participante.'
+    }
+  }
+
+  async function sairDoProjeto() {
+    if (isAdmin.value) {
+      projectHistoryStore.erro =
+        'O criador não pode sair do projeto sem transferir sua responsabilidade.'
+      return
+    }
+    if (!isMember.value) {
+      projectHistoryStore.erro = 'Você não participa deste projeto.'
+      return
+    }
+
+    const confirmado = window.confirm(
+      'Sair deste projeto? Suas tarefas pendentes serão encaminhadas ao histórico do projeto. Tarefas concluídas serão preservadas.',
+    )
+    if (!confirmado) return
+
+    try {
+      await projectHistoryStore.sairDoProjetoAtual(
+        projetoId.value,
+        usuarioAtual.value.id,
+      )
+    } catch (error) {
+      projectHistoryStore.erro = error.message || 'Não foi possível sair do projeto.'
+    }
+  }
+
+  watch([projetoId, isMember], async ([id, temAcesso]) => {
     if (!route.query.tarefa) {
       tarefaSelecionada.value = null
     }
     erro.value = ''
+    if (!temAcesso) return
     try {
       await store.listarTarefas(id)
       if (route.query.tarefa) {
@@ -192,7 +269,8 @@ export function useTaskCrud() {
     projetoId,
     usuarioAtual,
     isAdmin,
-    projetos,
+    creatorId,
+    isMember,
     projeto,
     participantes,
     colunas,
@@ -226,6 +304,9 @@ export function useTaskCrud() {
     finalizarArrasto,
     sairDaColuna,
     soltarTarefa,
-    adicionarParticipante
+    adicionarParticipante,
+    removerParticipante,
+    sairDoProjeto,
+    projectHistoryStore
   }
 }

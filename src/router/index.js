@@ -12,6 +12,7 @@ import Configuracoes from '../views/ConfiguracoesView.vue'
 import KanbanView from '../views/KanbanView.vue'
 import Perfil from '../views/PerfilView.vue'
 import Notificacoes from '../views/NotificacoesView.vue'
+import Historico from '../views/HistoricoView.vue'
 
 const routes = [
   {
@@ -95,6 +96,12 @@ const routes = [
     path: '/notificacoes',
     name: 'notificacoes',
     component: Notificacoes,
+    meta: { requiresAuthBackground: false },
+  },
+  {
+    path: '/historico',
+    name: 'historico',
+    component: Historico,
     meta: { requiresAuthBackground: false },
   },
 ]

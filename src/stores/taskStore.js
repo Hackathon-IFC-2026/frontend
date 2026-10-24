@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import api from '/services/api.js'
 
 // Altere para false quando a API Django estiver pronta.
-const MODO_DEMONSTRACAO = true
+export const MODO_DEMONSTRACAO = true
 
 const dadosIniciais = [
   {
@@ -182,6 +182,34 @@ export const useTaskStore = defineStore('tasks', () => {
     }
   }
 
+  function arquivarTarefas(projetoId, ids) {
+    const idsArquivados = new Set(ids.map(String))
+    const removidas = tarefas.value.filter((tarefa) =>
+      String(tarefa.projeto) === String(projetoId) &&
+      idsArquivados.has(String(tarefa.id)),
+    )
+    tarefas.value = tarefas.value.filter(
+      (tarefa) => !removidas.includes(tarefa),
+    )
+
+    if (removidas.some((tarefa) =>
+      Number(tarefaAtual.value?.id) === Number(tarefa.id),
+    )) {
+      tarefaAtual.value = null
+    }
+
+    return copiar(removidas)
+  }
+
+  function restaurarTarefaDoHistorico(tarefa) {
+    const jaExiste = tarefas.value.some((item) =>
+      String(item.projeto) === String(tarefa.projeto) &&
+      String(item.id) === String(tarefa.id),
+    )
+    if (jaExiste) throw new Error('A tarefa já está no fluxo normal do projeto.')
+    tarefas.value.push(copiar(tarefa))
+  }
+
   async function adicionarComentario(tarefaId, texto, autor = null) {
     if (MODO_DEMONSTRACAO) {
       const tarefa = tarefas.value.find(
@@ -266,6 +294,8 @@ export const useTaskStore = defineStore('tasks', () => {
     criarTarefa,
     atualizarTarefa,
     excluirTarefa,
+    arquivarTarefas,
+    restaurarTarefaDoHistorico,
     adicionarComentario,
     adicionarChecklist,
     atualizarChecklist
