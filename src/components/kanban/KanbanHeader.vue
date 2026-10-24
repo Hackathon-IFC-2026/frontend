@@ -108,38 +108,61 @@ defineEmits([
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .projeto-header h1 {
   margin: 0;
-  font-size: 23px;
-  font-weight: 700;
+  color: #111827;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
 }
 
 .projeto-header p {
-  margin: 3px 0 0;
-  font-size: 11px;
-  color: #849087;
+  margin: 8px 0 0;
+  color: #68756a;
+  font-size: 0.9rem;
 }
 
 .btn-criar {
-  display: flex;
+  display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 5px;
-  padding: 9px 15px;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
   border: 0;
   border-radius: 9px;
-  background: #2b4532;
-  color: white;
-  font: 600 12px Poppins, sans-serif;
+  background: #1a3721;
+  color: #f6e8d0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-criar:hover {
+  transform: translateY(-1px);
+  background: #234d2e;
+}
+
+.btn-criar:active {
+  transform: translateY(0);
 }
 
 .btn-criar .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 1.25rem;
+  transition: transform 0.2s ease;
+}
+
+.btn-criar:hover .material-symbols-outlined {
+  transform: rotate(90deg);
 }
 
 .resumo {
@@ -213,7 +236,7 @@ defineEmits([
     flex-wrap: wrap;
   }
   .projeto-header h1 {
-    font-size: 21px;
+    font-size: 1.75rem;
   }
   .resumo {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -221,6 +244,19 @@ defineEmits([
   .toolbar > .filtro-dropdown {
     flex: 1 1 0;
     min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-criar,
+  .btn-criar .material-symbols-outlined {
+    transition: none;
+  }
+
+  .btn-criar:hover,
+  .btn-criar:active,
+  .btn-criar:hover .material-symbols-outlined {
+    transform: none;
   }
 }
 </style>

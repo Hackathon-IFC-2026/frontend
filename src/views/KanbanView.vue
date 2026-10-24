@@ -44,15 +44,17 @@
       @created="tarefaCriada"
     />
 
-    <TaskDetails
-      v-if="tarefaSelecionada !== null"
-      :task-id="tarefaSelecionada"
-      :usuario-atual-id="usuarioAtual.id"
-      :is-admin="isAdmin"
-      @close="tarefaSelecionada = null"
-      @updated="atualizarQuadro"
-      @deleted="atualizarQuadro"
-    />
+    <Transition name="task-popup">
+      <TaskDetails
+        v-if="tarefaSelecionada !== null"
+        :task-id="tarefaSelecionada"
+        :usuario-atual-id="usuarioAtual.id"
+        :is-admin="isAdmin"
+        @close="tarefaSelecionada = null"
+        @updated="atualizarQuadro"
+        @deleted="atualizarQuadro"
+      />
+    </Transition>
 
     <ParticipantModal
       v-model="modalParticipanteAberto"
@@ -114,8 +116,8 @@ function onAdicionarParticipante(nome) {
 .kanban-pagina {
   width: 100%;
   max-width: 1600px;
-  margin: auto;
-  padding: 12px 16px;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
   box-sizing: border-box;
   font-family: Poppins, sans-serif;
   color: #24372a;
@@ -134,6 +136,36 @@ function onAdicionarParticipante(nome) {
   font-size: 12px;
 }
 
+.task-popup-enter-active,
+.task-popup-leave-active {
+  transition: opacity 220ms ease;
+}
+
+.task-popup-enter-from,
+.task-popup-leave-to {
+  opacity: 0;
+}
+
+.task-popup-enter-active :deep(.task-modal),
+.task-popup-leave-active :deep(.task-modal) {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.task-popup-enter-from :deep(.task-modal),
+.task-popup-leave-to :deep(.task-modal) {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-popup-enter-active,
+  .task-popup-leave-active,
+  .task-popup-enter-active :deep(.task-modal),
+  .task-popup-leave-active :deep(.task-modal) {
+    transition: none;
+  }
+}
+
 @media (max-width: 1050px) {
   .kanban-area {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -142,7 +174,7 @@ function onAdicionarParticipante(nome) {
 
 @media (max-width: 600px) {
   .kanban-pagina {
-    padding: 12px;
+    padding: 20px 16px 32px;
   }
   .kanban-area {
     grid-template-columns: 1fr;
