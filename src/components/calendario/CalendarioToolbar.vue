@@ -39,57 +39,41 @@
           />
         </div>
 
-        <select
-          :value="filtroProjeto"
-          class="select-filtro"
-          @change="$emit('update:filtroProjeto', $event.target.value)"
-        >
-          <option value="todos">Todos os projetos</option>
-          <option
-            v-for="proj in projetos"
-            :key="proj.id"
-            :value="String(proj.id)"
-          >
-            {{ proj.nome }}
-          </option>
-        </select>
+        <FiltroDropdown
+          class="filtro-calendario"
+          :model-value="filtroProjeto"
+          :options="opcoesProjetos"
+          label="Filtrar por projeto"
+          compacto
+          @update:model-value="$emit('update:filtroProjeto', $event)"
+        />
 
-        <select
-          :value="filtroStatus"
-          class="select-filtro"
-          @change="$emit('update:filtroStatus', $event.target.value)"
-        >
-          <option value="todos">Todos os status</option>
-          <option value="a_fazer">A fazer</option>
-          <option value="em_andamento">Em andamento</option>
-          <option value="concluido">Concluído</option>
-        </select>
+        <FiltroDropdown
+          class="filtro-calendario"
+          :model-value="filtroStatus"
+          :options="opcoesStatus"
+          label="Filtrar por status"
+          compacto
+          @update:model-value="$emit('update:filtroStatus', $event)"
+        />
 
-        <select
-          :value="filtroPrioridade"
-          class="select-filtro"
-          @change="$emit('update:filtroPrioridade', $event.target.value)"
-        >
-          <option value="todas">Todas as prioridades</option>
-          <option value="alta">Alta</option>
-          <option value="media">Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
+        <FiltroDropdown
+          class="filtro-calendario"
+          :model-value="filtroPrioridade"
+          :options="opcoesPrioridade"
+          label="Filtrar por prioridade"
+          compacto
+          @update:model-value="$emit('update:filtroPrioridade', $event)"
+        />
 
-        <select
-          :value="filtroParticipante"
-          class="select-filtro"
-          @change="$emit('update:filtroParticipante', $event.target.value)"
-        >
-          <option value="todos">Responsáveis</option>
-          <option
-            v-for="resp in participantes"
-            :key="resp.id"
-            :value="String(resp.id)"
-          >
-            {{ resp.nome }}
-          </option>
-        </select>
+        <FiltroDropdown
+          class="filtro-calendario"
+          :model-value="filtroParticipante"
+          :options="opcoesParticipantes"
+          label="Filtrar por responsável"
+          compacto
+          @update:model-value="$emit('update:filtroParticipante', $event)"
+        />
       </div>
 
       <div class="contador-mes">
@@ -100,7 +84,10 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import FiltroDropdown from '@/components/shared/FiltroDropdown.vue'
+
+const props = defineProps({
   nomeMesAno: {
     type: String,
     required: true
@@ -138,6 +125,38 @@ defineProps({
     default: 0
   }
 })
+
+const opcoesProjetos = computed(() => [
+  { value: 'todos', label: 'Todos os projetos', tom: 'neutro' },
+  ...props.projetos.map((projeto) => ({
+    value: String(projeto.id),
+    label: projeto.nome,
+    tom: 'neutro',
+  })),
+])
+
+const opcoesStatus = [
+  { value: 'todos', label: 'Todos os status', tom: 'neutro' },
+  { value: 'a_fazer', label: 'A fazer', tom: 'a_fazer' },
+  { value: 'em_andamento', label: 'Em andamento', tom: 'em_andamento' },
+  { value: 'concluido', label: 'Concluído', tom: 'concluido' },
+]
+
+const opcoesPrioridade = [
+  { value: 'todas', label: 'Todas as prioridades', tom: 'neutro' },
+  { value: 'alta', label: 'Alta', tom: 'alta' },
+  { value: 'media', label: 'Média', tom: 'media' },
+  { value: 'baixa', label: 'Baixa', tom: 'baixa' },
+]
+
+const opcoesParticipantes = computed(() => [
+  { value: 'todos', label: 'Todos os responsáveis', tom: 'neutro' },
+  ...props.participantes.map((participante) => ({
+    value: String(participante.id),
+    label: participante.nome,
+    tom: 'neutro',
+  })),
+])
 
 defineEmits([
   'mes-anterior',
@@ -240,14 +259,28 @@ defineEmits([
   flex: 1;
 }
 
+.filtros-esquerda > .filtro-calendario {
+  flex: 0 1 170px;
+  width: auto;
+}
+
 .campo-busca {
   display: flex;
+  flex: 1 1 170px;
   align-items: center;
   gap: 6px;
-  padding: 0 10px;
+  min-height: 40px;
+  padding: 0 11px;
   background: white;
-  border: 1px solid #e4eae6;
-  border-radius: 8px;
+  border: 1px solid #d4dfd5;
+  border-radius: 9px;
+  box-shadow: 0 2px 7px rgba(26, 55, 33, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.campo-busca:focus-within {
+  border-color: #4e7855;
+  box-shadow: 0 0 0 3px rgba(78, 120, 85, 0.14);
   min-width: 170px;
 }
 
@@ -257,27 +290,14 @@ defineEmits([
 }
 
 .campo-busca input {
+  min-width: 0;
   padding: 8px 0;
   border: 0;
   outline: 0;
-  font: 12px Poppins, sans-serif;
-  color: #26372d;
+  background: transparent;
+  color: #1a3721;
+  font: 0.8rem Poppins, sans-serif;
   width: 100%;
-}
-
-.select-filtro {
-  padding: 8px 10px;
-  background: white;
-  border: 1px solid #e4eae6;
-  border-radius: 8px;
-  font: 11px Poppins, sans-serif;
-  color: #26372d;
-  cursor: pointer;
-  outline: 0;
-}
-
-.select-filtro:focus {
-  border-color: #244631;
 }
 
 .contador-mes {
@@ -296,4 +316,3 @@ defineEmits([
   }
 }
 </style>
-

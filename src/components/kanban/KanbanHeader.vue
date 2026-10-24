@@ -27,30 +27,29 @@
       />
     </div>
 
-    <select
-      :value="filtroPrioridade"
-      @change="$emit('update:filtroPrioridade', $event.target.value)"
-    >
-      <option value="todas">Todas as prioridades</option>
-      <option value="alta">Alta</option>
-      <option value="media">Média</option>
-      <option value="baixa">Baixa</option>
-    </select>
+    <FiltroDropdown
+      :model-value="filtroPrioridade"
+      :options="opcoesPrioridade"
+      label="Filtrar tarefas por prioridade"
+      compacto
+      @update:model-value="$emit('update:filtroPrioridade', $event)"
+    />
 
-    <select
-      :value="filtroParticipante"
-      @change="$emit('update:filtroParticipante', $event.target.value)"
-    >
-      <option value="todos">Todos os responsáveis</option>
-      <option v-for="pessoa in participantes" :key="pessoa.id" :value="String(pessoa.id)">
-        {{ pessoa.nome }}
-      </option>
-    </select>
+    <FiltroDropdown
+      :model-value="filtroParticipante"
+      :options="opcoesParticipantes"
+      label="Filtrar tarefas por responsável"
+      compacto
+      @update:model-value="$emit('update:filtroParticipante', $event)"
+    />
   </section>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import FiltroDropdown from '@/components/shared/FiltroDropdown.vue'
+
+const props = defineProps({
   projeto: {
     type: Object,
     required: true
@@ -76,6 +75,22 @@ defineProps({
     default: 'todos'
   }
 })
+
+const opcoesPrioridade = [
+  { value: 'todas', label: 'Todas as prioridades', tom: 'neutro' },
+  { value: 'alta', label: 'Alta', tom: 'alta' },
+  { value: 'media', label: 'Média', tom: 'media' },
+  { value: 'baixa', label: 'Baixa', tom: 'baixa' },
+]
+
+const opcoesParticipantes = computed(() => [
+  { value: 'todos', label: 'Todos os responsáveis', tom: 'neutro' },
+  ...props.participantes.map((pessoa) => ({
+    value: String(pessoa.id),
+    label: pessoa.nome,
+    tom: 'neutro',
+  })),
+])
 
 defineEmits([
   'criar-tarefa',
@@ -162,6 +177,11 @@ defineEmits([
   flex-wrap: wrap;
 }
 
+.toolbar > .filtro-dropdown {
+  flex: 0 1 220px;
+  width: auto;
+}
+
 .campo-busca {
   flex: 1;
   min-width: 170px;
@@ -187,15 +207,6 @@ defineEmits([
   font: 12px Poppins, sans-serif;
 }
 
-.toolbar select {
-  padding: 9px 11px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
-  background: white;
-  color: #385240;
-  font: 11px Poppins, sans-serif;
-}
-
 @media (max-width: 600px) {
   .projeto-header {
     align-items: flex-start;
@@ -207,10 +218,9 @@ defineEmits([
   .resumo {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .toolbar select {
-    flex: 1;
+  .toolbar > .filtro-dropdown {
+    flex: 1 1 0;
     min-width: 0;
   }
 }
 </style>
-
