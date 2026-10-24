@@ -35,7 +35,6 @@ import { useToastStore } from '../stores/toast'
 const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToastStore()
-const mostrarSenha = ref(false)
 
 const form = reactive({
   email: '',

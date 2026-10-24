@@ -6,16 +6,9 @@
     <div class="footer-content">
       <div class="footer-top">
         <div class="logo">
-          <span class="material-symbols-outlined logo-icon">circle</span>
-          <span class="logo-text">Hackathon</span>
+          <span class="logo-text">Kando</span>
         </div>
 
-        <nav class="nav-links">
-          <a href="#home" class="nav-item">Home</a>
-          <a href="#produtos" class="nav-item">Produtos</a>
-          <a href="#sobre" class="nav-item">Sobre</a>
-          <a href="#contato" class="nav-item">Contato</a>
-        </nav>
       </div>
 
       <hr class="divider" />
