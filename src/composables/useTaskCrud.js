@@ -29,7 +29,6 @@ export function useTaskCrud() {
   ])
 
   const colunas = [
-    { id: 'atrasado', nome: 'Atrasado', classe: 'coluna-atrasado' },
     { id: 'a_fazer', nome: 'A fazer', classe: 'coluna-fazer' },
     { id: 'em_andamento', nome: 'Em andamento', classe: 'coluna-andamento' },
     { id: 'concluido', nome: 'Concluído', classe: 'coluna-concluido' }
@@ -93,9 +92,7 @@ export function useTaskCrud() {
   }))
 
   function tarefasDaColuna(colunaId) {
-    return tarefasFiltradas.value.filter(tarefa => colunaId === 'atrasado'
-      ? estaAtrasada(tarefa)
-      : tarefa.status === colunaId && !estaAtrasada(tarefa))
+    return tarefasFiltradas.value.filter(tarefa => tarefa.status === colunaId)
   }
 
   function prioridadeLabel(prioridade) {
@@ -150,7 +147,7 @@ export function useTaskCrud() {
   async function soltarTarefa(event, colunaId) {
     const id = tarefaArrastadaId.value
     finalizarArrasto()
-    if (id === null || colunaId === 'atrasado') return
+    if (id === null) return
 
     const tarefa = tarefas.value.find(item => Number(item.id) === Number(id))
     if (!tarefa || !podeGerenciar(tarefa) || tarefa.status === colunaId) return

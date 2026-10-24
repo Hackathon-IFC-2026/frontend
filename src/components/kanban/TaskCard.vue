@@ -13,6 +13,11 @@
       <span class="task-id">#{{ tarefa.id }}</span>
     </div>
 
+    <div v-if="estaAtrasada" class="tag-atrasada">
+      <span class="material-symbols-outlined">warning</span>
+      Tarefa atrasada!
+    </div>
+
     <h3>{{ tarefa.titulo }}</h3>
     <p v-if="tarefa.descricao" class="card-descricao">{{ tarefa.descricao }}</p>
 
@@ -66,6 +71,13 @@ function formatarPrazo(data) {
   const [ano, mes, dia] = data.slice(0, 10).split('-')
   return `${dia}/${mes}/${ano}`
 }
+
+const estaAtrasada = computed(() => {
+  if (!props.tarefa.prazo || props.tarefa.status === 'concluido') return false
+  const agora = new Date()
+  const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`
+  return props.tarefa.prazo.slice(0, 10) < hoje
+})
 </script>
 
 <style scoped>
@@ -125,6 +137,23 @@ function formatarPrazo(data) {
 .task-id {
   color: #a2ada5;
   font-size: 10px;
+}
+
+.tag-atrasada {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: #fde8e8;
+  color: #c81e1e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tag-atrasada .material-symbols-outlined {
+  font-size: 13px;
 }
 
 .task-card h3 {

@@ -14,12 +14,10 @@
         <span class="contador">{{ tarefas.length }}</span>
       </div>
       <button
-        v-if="coluna.id !== 'atrasado'"
         class="btn-add-coluna"
         title="Adicionar tarefa"
         @click="$emit('adicionar-tarefa', coluna.id)"
       >+</button>
-      <span v-else class="btn-add-placeholder"></span>
     </header>
 
     <div class="lista-cards">
@@ -38,7 +36,6 @@
         Nenhuma tarefa nesta etapa
       </div>
       <button
-        v-if="coluna.id !== 'atrasado'"
         class="adicionar-rodape"
         @click="$emit('adicionar-tarefa', coluna.id)"
       >+ Adicionar tarefa</button>
