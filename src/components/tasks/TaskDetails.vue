@@ -51,7 +51,7 @@
                 </button>
               </div>
 
-              <p class="description">{{ tarefa.descricao || 'Sem descrição.' }}</p>
+              <p class="description">{{ tarefa.descricao || 'Sem descrição.' }}</p><p class="description">Complexidade estimada: {{ ({ 1: 'Baixa', 2: 'Média', 3: 'Alta' })[tarefa.complexidade || 1] }}<span v-if="tarefa.impedida"> · Bloqueada por dependência</span></p>
             </section>
 
             <!-- CHECKLIST -->

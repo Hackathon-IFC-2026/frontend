@@ -15,6 +15,7 @@ import Notificacoes from '../views/NotificacoesView.vue'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
+  { path: '/insights', name: 'insights', component: () => import('../views/InsightsView.vue'), meta: { requiresAuth: true } },
   { path: '/dashboard', name: 'dashboard', component: () => import('../views/DashboardView.vue'), meta: { requiresAuth: true } },
   { path: '/kanban', redirect: '/projects' },
   {

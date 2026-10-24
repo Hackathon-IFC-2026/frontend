@@ -136,6 +136,7 @@
       <div class="participantes-topo">
         <div>
           <h2>Participantes <span>{{ participantes.length }}</span></h2>
+          <RouterLink v-if="projeto.id" :to="{ name: 'insights', query: { projeto: projeto.id } }">Carga de trabalho ↗</RouterLink>
           <p>Equipe deste projeto</p>
         </div>
         <button v-if="isAdmin" @click="modalParticipanteAberto = true; erroParticipante = ''">

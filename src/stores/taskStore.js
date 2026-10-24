@@ -17,7 +17,7 @@ function dataInput(value) {
 }
 function payload(dados) {
   const result = {}
-  for (const campo of ['projeto', 'titulo', 'descricao', 'data_inicio']) if (campo in dados) result[campo] = dados[campo]
+  for (const campo of ['projeto', 'titulo', 'descricao', 'data_inicio', 'complexidade', 'impedida', 'esperado_responsavel']) if (campo in dados) result[campo] = dados[campo]
   if ('status' in dados) result.situacao = statusAPI[dados.status]
   if ('prioridade' in dados) result.prioridade = prioridadeAPI[dados.prioridade]
   if ('prazo' in dados) result.prazo = dados.prazo ? /^\d{4}-\d{2}-\d{2}$/.test(dados.prazo) ? dados.prazo + 'T23:59:59-03:00' : dados.prazo : null
