@@ -314,7 +314,7 @@ watch(
     try {
       await store.buscarTarefa(id)
       descricaoEditada.value = tarefa.value?.descricao || ''
-    } catch (error) {
+    } catch {
       erro.value = 'Não foi possível carregar a tarefa.'
     } finally {
       loading.value = false
@@ -368,7 +368,7 @@ async function salvarDescricao() {
 
     editando.value = false
     emit('updated')
-  } catch (error) {
+  } catch {
     erro.value = 'Erro ao salvar descrição.'
   }
 }
@@ -382,7 +382,7 @@ async function alterarCampo(campo, valor) {
     })
 
     emit('updated')
-  } catch (error) {
+  } catch {
     erro.value = 'Erro ao atualizar tarefa.'
   }
 }
@@ -398,7 +398,7 @@ async function alterarChecklist(item) {
     )
 
     emit('updated')
-  } catch (error) {
+  } catch {
     erro.value = 'Erro ao atualizar checklist.'
   }
 }
@@ -416,7 +416,7 @@ async function enviarComentario() {
 
     novoComentario.value = ''
     emit('updated')
-  } catch (error) {
+  } catch {
     erro.value = 'Erro ao enviar comentário.'
   } finally {
     enviando.value = false
@@ -432,7 +432,7 @@ async function excluir() {
     await store.excluirTarefa(tarefa.value.id)
     emit('deleted')
     emit('close')
-  } catch (error) {
+  } catch {
     erro.value = 'Erro ao excluir tarefa.'
   }
 }
