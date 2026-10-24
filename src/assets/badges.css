@@ -1,0 +1,120 @@
+/* Shared semantic colors: task status, priority and membership roles. */
+:root {
+  --badge-admin-bg: #f0e9ff;
+  --badge-admin-text: #7656a8;
+  --badge-member-bg: #e8f3ff;
+  --badge-member-text: #4678a8;
+  --badge-low-bg: #e8f5e9;
+  --badge-low-text: #43835a;
+  --badge-medium-bg: #fff4d9;
+  --badge-medium-text: #a67a28;
+  --badge-high-bg: #fce8e8;
+  --badge-high-text: #b85c5c;
+  --badge-todo-bg: #edf0f4;
+  --badge-todo-text: #64748b;
+  --badge-progress-bg: #e6f0ff;
+  --badge-progress-text: #4878b8;
+  --badge-done-bg: #e4f5ea;
+  --badge-done-text: #40845a;
+}
+html.dark-mode {
+  --badge-admin-bg: #352d49;
+  --badge-admin-text: #cfb5f4;
+  --badge-member-bg: #263a4d;
+  --badge-member-text: #a2c9ed;
+  --badge-low-bg: #263e30;
+  --badge-low-text: #a3cfaf;
+  --badge-medium-bg: #473e29;
+  --badge-medium-text: #e7cb86;
+  --badge-high-bg: #4a2d30;
+  --badge-high-text: #eeb3b3;
+  --badge-todo-bg: #303b47;
+  --badge-todo-text: #c0cddd;
+  --badge-progress-bg: #293c55;
+  --badge-progress-text: #adcaf2;
+  --badge-done-bg: #294335;
+  --badge-done-text: #abd4b9;
+}
+[data-role='admin'],
+[data-status='bloqueado'] {
+  --badge-bg: var(--badge-admin-bg);
+  --badge-text: var(--badge-admin-text);
+}
+[data-role='participante'] {
+  --badge-bg: var(--badge-member-bg);
+  --badge-text: var(--badge-member-text);
+}
+[data-priority='baixa'] {
+  --badge-bg: var(--badge-low-bg);
+  --badge-text: var(--badge-low-text);
+}
+[data-priority='media'] {
+  --badge-bg: var(--badge-medium-bg);
+  --badge-text: var(--badge-medium-text);
+}
+[data-priority='alta'],
+[data-status='atrasado'] {
+  --badge-bg: var(--badge-high-bg);
+  --badge-text: var(--badge-high-text);
+}
+[data-status='a_fazer'] {
+  --badge-bg: var(--badge-todo-bg);
+  --badge-text: var(--badge-todo-text);
+}
+[data-status='em_andamento'] {
+  --badge-bg: var(--badge-progress-bg);
+  --badge-text: var(--badge-progress-text);
+}
+[data-status='concluido'] {
+  --badge-bg: var(--badge-done-bg);
+  --badge-text: var(--badge-done-text);
+}
+.k-badge,
+.k-filter[data-priority='baixa'],
+.k-filter[data-priority='media'],
+.k-filter[data-priority='alta'],
+.k-filter[data-role='admin'],
+.k-filter[data-role='participante'],
+.k-filter[data-status='a_fazer'],
+.k-filter[data-status='em_andamento'],
+.k-filter[data-status='concluido'],
+.k-filter[data-status='atrasado'] {
+  background: var(--badge-bg, var(--color-background-soft)) !important;
+  color: var(--badge-text, var(--color-text-secondary)) !important;
+}
+.k-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.clear-filters {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+.active-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+.active-filter-chip {
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 3px 8px;
+}

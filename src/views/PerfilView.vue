@@ -10,38 +10,14 @@
         </div>
         <div class="profile-card">
           <div class="profile-header">
-            <div
-              class="avatar-container"
-              :class="{ 'editable': editando }"
-              @click="editando && acionarInputFoto()"
-            >
-              <img
-                v-if="previewFoto || usuarioAtual.foto || usuarioAtual.avatar"
-                :src="previewFoto || usuarioAtual.foto || usuarioAtual.avatar"
-                alt="Foto do perfil"
-                class="avatar-img"
-              />
-              <div v-else class="avatar">
-                {{ inicialUsuario }}
-              </div>
-              <div v-if="editando" class="avatar-overlay">
-                <span class="material-symbols-outlined">photo_camera</span>
-              </div>
-            </div>
-            <input
-              ref="fileInput"
-              type="file"
-              accept="image/*"
-              style="display: none;"
-              @change="aoSelecionarFoto"
-            />
-
+            <div class="avatar-container"><img v-if="usuarioAtual.foto" :src="usuarioAtual.foto" class="avatar-img" alt="Sua foto de perfil" /><div v-else class="avatar">{{ inicialUsuario }}</div></div>
             <div class="profile-name">
               <h2>{{ usuarioAtual.nome || usuarioAtual.name || 'Usuário' }}</h2>
               <p>{{ usuarioAtual.email || 'E-mail não informado' }}</p>
             </div>
           </div>
 
+          <ProfilePhotoEditor v-if="editando" />
           <div class="divider"></div>
           <div class="section-header">
             <div class="section-icon">
@@ -83,14 +59,15 @@
                   />
                 </div>
               </div>
+              <div class="info-block"><label for="data-nascimento">Data de nascimento</label><div class="input-container"><span class="material-symbols-outlined">cake</span><input id="data-nascimento" v-model="form.data_nascimento" type="date" :max="new Date().toISOString().slice(0, 10)" :disabled="!editando" /></div></div>
             </div>
             <div v-if="mensagem" class="message success">
               <span class="material-symbols-outlined">check_circle</span>
               {{ mensagem }}
             </div>
-            <div v-if="authStore.error" class="message error">
+            <div v-if="authStore.erro" class="message error">
               <span class="material-symbols-outlined">error</span>
-              {{ authStore.error }}
+              {{ authStore.erro }}
             </div>
             <div class="actions">
               <template v-if="!editando">
@@ -108,21 +85,35 @@
                   type="button"
                   class="cancel-btn"
                   @click="cancelarEdicao"
-                  :disabled="authStore.loading"
+                  :disabled="authStore.carregando"
                 >Cancelar</button>
                 <button
                   type="submit"
                   class="save-btn"
-                  :disabled="authStore.loading"
+                  :disabled="authStore.carregando"
                 >
-                  <span v-if="authStore.loading" class="spinner"></span>
+                  <span v-if="authStore.carregando" class="spinner"></span>
                   <span v-else class="material-symbols-outlined">save</span>
-                  {{ authStore.loading ? 'Salvando...' : 'Salvar alterações' }}
+                  {{ authStore.carregando ? 'Salvando...' : 'Salvar alterações' }}
                 </button>
               </template>
             </div>
           </form>
         </div>
+
+        <section class="profile-card password-card">
+          <div class="section-header"><div class="section-icon"><span class="material-symbols-outlined">lock</span></div><div><h3>Alterar senha</h3><p>Atualize a senha da sua conta com segurança.</p></div></div>
+          <form @submit.prevent="salvarSenha">
+            <div class="form-grid">
+              <div class="info-block"><label for="senha-atual">Senha atual</label><PasswordInput id="senha-atual" v-model="senha.senha_atual" autocomplete="current-password" required /></div>
+              <div class="info-block"><label for="nova-senha">Nova senha</label><PasswordInput id="nova-senha" v-model="senha.nova_senha" autocomplete="new-password" minlength="8" required /></div>
+              <div class="info-block"><label for="confirmar-senha">Confirmar nova senha</label><PasswordInput id="confirmar-senha" v-model="senha.confirmar_senha" autocomplete="new-password" minlength="8" required /></div>
+            </div>
+            <p v-if="erroSenha" class="message error" role="alert">{{ erroSenha }}</p>
+            <p v-if="sucessoSenha" class="message success" role="status">{{ sucessoSenha }}</p>
+            <div class="actions"><button class="save-btn" :disabled="authStore.carregando" type="submit">{{ authStore.carregando ? 'Salvando...' : 'Salvar nova senha' }}</button></div>
+          </form>
+        </section>
 
       </div>
     </div>
@@ -130,109 +121,42 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-
-const authStore = useAuthStore();
-
-const editando = ref(false);
-const mensagem = ref('');
-
-const fileInput = ref(null);
-const fotoArquivo = ref(null);
-const previewFoto = ref(null);
-
-const form = reactive({
-  nome: '',
-  email: ''
-});
-
-const usuarioAtual = computed(() => authStore.usuario || {});
-
-const inicialUsuario = computed(() => {
-  const nome = usuarioAtual.value.nome || usuarioAtual.value.name || 'U';
-  return nome.charAt(0).toUpperCase();
-});
-
-function preencherFormulario() {
-  form.nome = usuarioAtual.value.nome || usuarioAtual.value.name || '';
-  form.email = usuarioAtual.value.email || '';
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import ProfilePhotoEditor from '@/components/ProfilePhotoEditor.vue'
+import PasswordInput from '@/components/shared/PasswordInput.vue'
+import { mensagemErro } from '/services/apiHelpers'
+const authStore = useAuthStore()
+const usuarioAtual = computed(() => authStore.usuario || {})
+const inicialUsuario = computed(() => (usuarioAtual.value.nome || usuarioAtual.value.name || 'U').charAt(0).toUpperCase())
+const editando = ref(false)
+const mensagem = ref('')
+const form = reactive({ nome: '', email: '', data_nascimento: '' })
+const senha = reactive({ senha_atual: '', nova_senha: '', confirmar_senha: '' })
+const erroSenha = ref('')
+const sucessoSenha = ref('')
+function preencher() {
+  form.nome = usuarioAtual.value.nome || usuarioAtual.value.name || ''
+  form.email = usuarioAtual.value.email || ''
+  form.data_nascimento = usuarioAtual.value.data_nascimento || ''
 }
-
-function limparPreviewFoto() {
-  if (previewFoto.value) {
-    URL.revokeObjectURL(previewFoto.value);
-    previewFoto.value = null;
-  }
-  fotoArquivo.value = null;
-  if (fileInput.value) {
-    fileInput.value.value = '';
-  }
-}
-
-function acionarInputFoto() {
-  if (fileInput.value) {
-    fileInput.value.click();
-  }
-}
-
-function aoSelecionarFoto(event) {
-  const arquivo = event.target.files[0];
-  if (arquivo) {
-    limparPreviewFoto();
-    fotoArquivo.value = arquivo;
-    previewFoto.value = URL.createObjectURL(arquivo);
-  }
-}
-
-function iniciarEdicao() {
-  mensagem.value = '';
-  if (authStore.error) authStore.error = null;
-  preencherFormulario();
-  editando.value = true;
-}
-
-function cancelarEdicao() {
-  preencherFormulario();
-  mensagem.value = '';
-  if (authStore.error) authStore.error = null;
-  limparPreviewFoto();
-  editando.value = false;
-}
-
+watch(usuarioAtual, () => { if (!editando.value) preencher() }, { immediate: true })
+function iniciarEdicao() { preencher(); mensagem.value = ''; authStore.erro = null; editando.value = true }
+function cancelarEdicao() { preencher(); editando.value = false; authStore.erro = null }
 async function salvarPerfil() {
-  mensagem.value = '';
-  if (authStore.error) authStore.error = null;
-
-  const sucesso = await authStore.updateProfile({
-    nome: form.nome.trim(),
-    email: form.email.trim(),
-    foto: fotoArquivo.value
-  });
-
-  if (sucesso) {
-    editando.value = false;
-    limparPreviewFoto();
-    mensagem.value = 'Perfil atualizado com sucesso!';
-
-    setTimeout(() => {
-      mensagem.value = '';
-    }, 4000);
-  }
+  try { await authStore.atualizarPerfil(form); editando.value = false; mensagem.value = 'Perfil atualizado com sucesso.' }
+  catch { /* Erro exibido pela store. */ }
 }
-
-watch(usuarioAtual, () => {
-  if (!editando.value) {
-    preencherFormulario();
-  }
-}, { immediate: true });
-
-onMounted(async () => {
-  if (!authStore.usuario && authStore.token) {
-    await authStore.me();
-  }
-  preencherFormulario();
-});
+async function salvarSenha() {
+  erroSenha.value = ''; sucessoSenha.value = ''
+  if (senha.nova_senha !== senha.confirmar_senha) { erroSenha.value = 'As novas senhas não coincidem.'; return }
+  try {
+    await authStore.alterarSenha(senha)
+    Object.keys(senha).forEach(k => { senha[k] = '' })
+    sucessoSenha.value = 'Senha atualizada com sucesso.'
+  } catch (err) { erroSenha.value = mensagemErro(err) }
+}
+onMounted(async () => { try { await authStore.buscarUsuario() } catch (err) { authStore.erro = mensagemErro(err) } })
 </script>
 
 <style scoped>
@@ -260,18 +184,18 @@ onMounted(async () => {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #333;
+  color: var(--theme-text-333333, #333);
 }
 
 .subtitle {
   margin: 5px 0 0;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.85rem;
 }
 
 .profile-card {
   width: 100%;
-  background: #ffffff;
+  background: var(--theme-bg-ffffff, #ffffff);
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -305,8 +229,8 @@ onMounted(async () => {
 .avatar {
   width: 100%;
   height: 100%;
-  background-color: #e4f4e6;
-  color: #333;
+  background-color: var(--theme-bg-e4f4e6, #e4f4e6);
+  color: var(--theme-text-333333, #333);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -339,7 +263,7 @@ onMounted(async () => {
 
 .profile-name h2 {
   margin: 0;
-  color: #333;
+  color: var(--theme-text-333333, #333);
   font-size: 1.15rem;
   font-weight: 700;
   overflow-wrap: anywhere;
@@ -347,14 +271,14 @@ onMounted(async () => {
 
 .profile-name p {
   margin: 4px 0 0;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.8rem;
   overflow-wrap: anywhere;
 }
 
 .divider {
   height: 1px;
-  background-color: #eeeeee;
+  background-color: var(--theme-bg-eeeeee, #eeeeee);
   margin: 22px 0;
 }
 
@@ -369,8 +293,8 @@ onMounted(async () => {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background-color: #e4f4e6;
-  color: #1A3721;
+  background-color: var(--theme-bg-e4f4e6, #e4f4e6);
+  color: var(--theme-text-1a3721, #1A3721);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -382,14 +306,14 @@ onMounted(async () => {
 
 .section-header h3 {
   margin: 0;
-  color: #333;
+  color: var(--theme-text-333333, #333);
   font-size: 0.95rem;
   font-weight: 700;
 }
 
 .section-header p {
   margin: 3px 0 0;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.75rem;
 }
 
@@ -400,14 +324,14 @@ onMounted(async () => {
 }
 
 .info-block {
-  background: #f9f9f9;
+  background: var(--theme-bg-f9f9f9, #f9f9f9);
   padding: 10px 12px;
   border-radius: 8px;
 }
 
 .info-block label {
   display: block;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 10px;
   margin-bottom: 6px;
 }
@@ -419,7 +343,7 @@ onMounted(async () => {
 }
 
 .input-container .material-symbols-outlined {
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 19px;
 }
 
@@ -428,19 +352,19 @@ onMounted(async () => {
   border: none;
   outline: none;
   background: transparent;
-  color: #333;
+  color: var(--theme-text-333333, #333);
   font-family: 'Poppins', sans-serif;
   font-size: 0.85rem;
   padding: 2px 0;
 }
 
 .input-container input:disabled {
-  color: #333;
+  color: var(--theme-text-333333, #333);
   cursor: default;
 }
 
 .input-container input:focus {
-  color: #1A3721;
+  color: var(--theme-text-1a3721, #1A3721);
 }
 
 .actions {
@@ -470,32 +394,32 @@ onMounted(async () => {
 
 .edit-btn {
   border: none;
-  background-color: #e4f4e6;
-  color: #333;
+  background-color: var(--theme-bg-e4f4e6, #e4f4e6);
+  color: var(--theme-text-333333, #333);
 }
 
 .edit-btn:hover {
-  background-color: #b5e0ba;
+  background-color: var(--theme-bg-b5e0ba, #b5e0ba);
 }
 
 .save-btn {
   border: none;
-  background-color: #e4f4e6;
-  color: #333;
+  background-color: var(--theme-bg-e4f4e6, #e4f4e6);
+  color: var(--theme-text-333333, #333);
 }
 
 .save-btn:hover:not(:disabled) {
-  background-color: #b5e0ba;
+  background-color: var(--theme-bg-b5e0ba, #b5e0ba);
 }
 
 .cancel-btn {
-  border: 1px solid #ddd;
-  background-color: #ffffff;
-  color: #555;
+  border: 1px solid var(--theme-border-dddddd, #ddd);
+  background-color: var(--theme-bg-ffffff, #ffffff);
+  color: var(--theme-text-555555, #555);
 }
 
 .cancel-btn:hover:not(:disabled) {
-  background-color: #f5f5f5;
+  background-color: var(--theme-bg-f5f5f5, #f5f5f5);
 }
 
 button:disabled {
@@ -518,20 +442,20 @@ button:disabled {
 }
 
 .success {
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  background-color: var(--theme-bg-e8f5e9, #e8f5e9);
+  color: var(--theme-text-2e7d32, #2e7d32);
 }
 
 .error {
-  background-color: #ffebee;
-  color: #c62828;
+  background-color: var(--theme-bg-ffebee, #ffebee);
+  color: var(--theme-text-c62828, #c62828);
 }
 
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-top-color: #333;
+  border: 2px solid var(--theme-border-000000-0_2, rgba(0, 0, 0, 0.2));
+  border-top-color: var(--theme-border-333333, #333);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -607,4 +531,7 @@ button:disabled {
     max-width: 1000px;
   }
 }
+.password-card { margin-top: 24px; }
+.password-card :deep(.password-input input) { width: 100%; padding: 12px 50px 12px 12px; border-radius: 8px; border: 1px solid var(--color-border); color: var(--color-text); background: var(--color-input); font: inherit; }
+.password-card :deep(.password-toggle) { color: var(--color-text-secondary); }
 </style>

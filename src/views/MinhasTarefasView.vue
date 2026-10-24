@@ -1,121 +1,33 @@
 <script setup>
 import { computed, ref } from 'vue'
-
+import { useAuthStore } from '@/stores/auth'
+import { tarefaAtrasada } from '@/utils/taskDates'
+import { useWorkspace } from '@/composables/useWorkspace'
+import SharedTaskDetails from '@/components/tasks/SharedTaskDetails.vue'
+const { projects, tasks, loading, error, carregar } = useWorkspace()
+const auth = useAuthStore()
 const busca = ref('')
 const filtroStatus = ref('todos')
-
-// Dados de exemplo para montar a interface; a API ainda não fornece estes dados.
-const projetos = ref([
-  {
-    id: 1,
-    nome: 'Natal luz',
-    descricao: 'Decoração e iluminação natalina da cidade.',
-    tarefas: [
-      {
-        id: 1,
-        titulo: 'Revisar proposta de iluminação',
-        prazo: '28/10/2026',
-        prioridade: 'Alta',
-        status: 'em_processo',
-      },
-      {
-        id: 2,
-        titulo: 'Organizar lista de materiais',
-        prazo: '02/11/2026',
-        prioridade: 'Média',
-        status: 'fazer',
-      },
-    ],
-  },
-  {
-    id: 2,
-    nome: 'Mutirão Verde',
-    descricao: 'Plantio de árvores e conscientização ambiental.',
-    tarefas: [
-      {
-        id: 3,
-        titulo: 'Confirmar locais de plantio',
-        prazo: '30/10/2026',
-        prioridade: 'Baixa',
-        status: 'concluido',
-      },
-      {
-        id: 4,
-        titulo: 'Preparar divulgação do mutirão',
-        prazo: '05/11/2026',
-        prioridade: 'Alta',
-        status: 'fazer',
-      },
-    ],
-  },
-  {
-    id: 3,
-    nome: 'Feira Tecnológica',
-    descricao: 'Exposição de startups e palestras de inovação.',
-    tarefas: [
-      {
-        id: 5,
-        titulo: 'Alinhar agenda com palestrantes',
-        prazo: '08/11/2026',
-        prioridade: 'Média',
-        status: 'em_processo',
-      },
-    ],
-  },
-])
-
-const todasAsTarefas = computed(() =>
-  projetos.value.flatMap((projeto) => projeto.tarefas)
-)
-
-const tarefasEmAndamento = computed(
-  () => todasAsTarefas.value.filter((tarefa) => tarefa.status === 'em_processo').length
-)
-
-const tarefasConcluidas = computed(
-  () => todasAsTarefas.value.filter((tarefa) => tarefa.status === 'concluido').length
-)
-
-const projetosFiltrados = computed(() => {
-  const termo = busca.value.trim().toLocaleLowerCase('pt-BR')
-
-  return projetos.value
-    .map((projeto) => ({
-      ...projeto,
-      tarefas: projeto.tarefas.filter((tarefa) => {
-        const correspondeAoStatus =
-          filtroStatus.value === 'todos' || tarefa.status === filtroStatus.value
-        const correspondeAoTermo =
-          !termo ||
-          projeto.nome.toLocaleLowerCase('pt-BR').includes(termo) ||
-          tarefa.titulo.toLocaleLowerCase('pt-BR').includes(termo)
-
-        return correspondeAoStatus && correspondeAoTermo
-      }),
-    }))
-    .filter((projeto) => projeto.tarefas.length > 0)
-})
-
-function nomeStatus(status) {
-  const nomes = {
-    fazer: 'A fazer',
-    em_processo: 'Em andamento',
-    concluido: 'Concluída',
-  }
-
-  return nomes[status] || status
-}
-
-function classeStatus(status) {
-  return `status-${status}`
-}
-
-function classePrioridade(prioridade) {
-  const normalizada = prioridade.toLocaleLowerCase('pt-BR')
-  if (normalizada === 'alta') return 'prioridade-alta'
-  if (normalizada === 'média' || normalizada === 'media') return 'prioridade-media'
-  return 'prioridade-baixa'
-}
+const filtroProjeto = ref('todos')
+const filtroPrioridade = ref('todos')
+const filtroPrazo = ref('todos')
+const selecionada = ref(null)
+const todasAsTarefas = computed(() => tasks.todasTarefas.filter(t => t.responsaveis.some(p => Number(p.id) === Number(auth.usuario?.id))))
+const tarefasEmAndamento = computed(() => todasAsTarefas.value.filter(t => t.status === 'em_andamento').length)
+const tarefasConcluidas = computed(() => todasAsTarefas.value.filter(t => t.status === 'concluido').length)
+const hoje = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+const projetosFiltrados = computed(() => projects.projetos
+  .filter(p => filtroProjeto.value === 'todos' || Number(p.id) === Number(filtroProjeto.value))
+  .map(p => ({ ...p, tarefas: todasAsTarefas.value.filter(t => t.projeto === Number(p.id)
+    && (filtroStatus.value === 'todos' || t.status === filtroStatus.value)
+    && (filtroPrioridade.value === 'todos' || t.prioridade === filtroPrioridade.value)
+    && (filtroPrazo.value === 'todos' || filtroPrazo.value === 'hoje' && t.prazo === hoje() || filtroPrazo.value === 'atrasadas' && tarefaAtrasada(t) || filtroPrazo.value === 'sem' && !t.prazo)
+    && (!busca.value.trim() || [t.titulo, t.descricao, p.nome].some(v => v?.toLocaleLowerCase('pt-BR').includes(busca.value.trim().toLocaleLowerCase('pt-BR'))))) }))
+  .filter(p => p.tarefas.length))
+const nomeStatus = status => ({ a_fazer: 'A fazer', em_andamento: 'Em andamento', concluido: 'Concluída' })[status]
+const classeStatus = status => 'status-' + ({ a_fazer: 'fazer', em_andamento: 'em_processo' }[status] || status)
+const classePrioridade = prioridade => 'prioridade-' + prioridade
+const formatarPrazo = prazo => prazo ? prazo.split('-').reverse().join('/') : 'Sem prazo'
 </script>
 
 <template>
@@ -129,11 +41,8 @@ function classePrioridade(prioridade) {
       </div>
       </header>
 
-    <p class="aviso-demonstracao" role="note">
-      Esta tela está usando dados de exemplo. A integração com os projetos e tarefas da API
-      ainda não foi feita.
-    </p>
-
+    <p v-if="loading" role="status">Carregando suas tarefas...</p>
+    <p v-if="error" role="alert">{{ error }} <button @click="carregar">Tentar novamente</button></p>
     <section class="resumo" aria-label="Resumo das minhas tarefas">
       <article class="resumo-card">
         <span class="resumo-icone total-icone material-symbols-outlined" aria-hidden="true">
@@ -190,13 +99,17 @@ function classePrioridade(prioridade) {
 
           <label class="filtro-status">
             <span class="visually-hidden">Filtrar tarefas por status</span>
-            <select v-model="filtroStatus">
+            <select v-model="filtroStatus" class="k-filter" :data-status="filtroStatus">
               <option value="todos">Todos os status</option>
-              <option value="fazer">A fazer</option>
-              <option value="em_processo">Em andamento</option>
+              <option value="a_fazer">A fazer</option>
+              <option value="em_andamento">Em andamento</option>
               <option value="concluido">Concluídas</option>
             </select>
           </label>
+          <label class="filtro-status"><span class="visually-hidden">Projeto</span><select v-model="filtroProjeto"><option value="todos">Todos os projetos</option><option v-for="p in projects.projetos" :key="p.id" :value="p.id">{{ p.nome }}</option></select></label>
+          <label class="filtro-status"><span class="visually-hidden">Prioridade</span><select v-model="filtroPrioridade" class="k-filter" :data-priority="filtroPrioridade"><option value="todos">Todas as prioridades</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></label>
+          <label class="filtro-status"><span class="visually-hidden">Prazo</span><select v-model="filtroPrazo"><option value="todos">Todos os prazos</option><option value="hoje">Hoje</option><option value="atrasadas">Atrasadas</option><option value="sem">Sem prazo</option></select></label>
+          <button v-if="busca || filtroStatus !== 'todos' || filtroProjeto !== 'todos' || filtroPrioridade !== 'todos' || filtroPrazo !== 'todos'" class="clear-filters" @click="busca = ''; filtroStatus = 'todos'; filtroProjeto = 'todos'; filtroPrioridade = 'todos'; filtroPrazo = 'todos'">Limpar filtros</button>
         </div>
       </div>
 
@@ -236,21 +149,21 @@ function classePrioridade(prioridade) {
                   aria-hidden="true"
                 ></span>
                 <div>
-                  <h4>{{ tarefa.titulo }}</h4>
+                  <h4><button class="abrir-tarefa" @click="selecionada = tarefa.id">{{ tarefa.titulo }}</button></h4><p>{{ tarefa.descricao }}</p>
                   <p class="prazo-tarefa">
                     <span class="material-symbols-outlined" aria-hidden="true">
                       calendar_today
                     </span>
-                    Prazo: {{ tarefa.prazo }}
+                    <span v-if="tarefa.data_inicio">Início: {{ formatarPrazo(tarefa.data_inicio) }} · </span>Prazo: {{ formatarPrazo(tarefa.prazo) }}
                   </p>
                 </div>
               </div>
 
-              <div class="tarefa-etiquetas">
-                <span class="etiqueta-status" :class="classeStatus(tarefa.status)">
+              <div class="tarefa-etiquetas"><span v-if="tarefaAtrasada(tarefa)" class="k-badge" data-status="atrasado">Atrasada</span>
+                <span class="etiqueta-status k-badge" :data-status="tarefa.status" :class="classeStatus(tarefa.status)">
                   {{ nomeStatus(tarefa.status) }}
                 </span>
-                <span class="etiqueta-prioridade" :class="classePrioridade(tarefa.prioridade)">
+                <span class="etiqueta-prioridade k-badge" :data-priority="tarefa.prioridade" :class="classePrioridade(tarefa.prioridade)">
                   {{ tarefa.prioridade }}
                 </span>
               </div>
@@ -259,12 +172,13 @@ function classePrioridade(prioridade) {
         </article>
       </div>
 
-      <div v-else class="estado-vazio">
+      <div v-else-if="!loading && !error" class="estado-vazio">
         <span class="material-symbols-outlined" aria-hidden="true">search_off</span>
         <h3>Nenhuma tarefa encontrada</h3>
         <p>Altere a busca ou o filtro de status para ver outras tarefas.</p>
       </div>
     </section>
+    <SharedTaskDetails v-if="selecionada" :task-id="selecionada" @close="selecionada = null" />
   </main>
 </template>
 
@@ -275,7 +189,7 @@ function classePrioridade(prioridade) {
   width: min(100%, 1200px);
   margin: 0 auto;
   padding: 28px 32px 48px;
-  color: #1a3721;
+  color: var(--theme-text-1a3721, #1a3721);
 }
 
 .pagina-cabecalho,
@@ -303,7 +217,7 @@ function classePrioridade(prioridade) {
 
 .sobretitulo {
   margin: 0 0 6px;
-  color: #4e7855;
+  color: var(--theme-text-4e7855, #4e7855);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -314,7 +228,7 @@ function classePrioridade(prioridade) {
   margin: 0;
   font-size: 2.1rem;
   font-weight: 800;
-  color: #111827;
+  color: var(--theme-text-111827, #111827);
   line-height: 1.15;
   letter-spacing: -0.5px;
 }
@@ -324,7 +238,7 @@ function classePrioridade(prioridade) {
 .projeto-info p,
 .resumo-card p,
 .estado-vazio p {
-  color: #68756a;
+  color: var(--theme-text-68756a, #68756a);
 }
 
 .pagina-descricao {
@@ -332,17 +246,17 @@ function classePrioridade(prioridade) {
 }
 
 .icone-cabecalho {
-  color: #4e7855;
+  color: var(--theme-text-4e7855, #4e7855);
   font-size: 2.8rem;
 }
 
 .aviso-demonstracao {
   margin: 0 0 20px;
   padding: 12px 16px;
-  border: 1px solid #e7d39c;
+  border: 1px solid var(--theme-border-e7d39c, #e7d39c);
   border-radius: 10px;
-  background: #fff9e8;
-  color: #6c5720;
+  background: var(--theme-bg-fff9e8, #fff9e8);
+  color: var(--theme-text-6c5720, #6c5720);
   font-size: 0.9rem;
 }
 
@@ -357,9 +271,9 @@ function classePrioridade(prioridade) {
   gap: 14px;
   min-height: 100px;
   padding: 18px;
-  border: 1px solid #e7ebe7;
+  border: 1px solid var(--theme-border-e7ebe7, #e7ebe7);
   border-radius: 14px;
-  background: #fff;
+  background: var(--theme-bg-ffffff, #fff);
   box-shadow: 0 3px 12px rgba(26, 55, 33, 0.04);
 }
 
@@ -373,18 +287,18 @@ function classePrioridade(prioridade) {
 }
 
 .total-icone {
-  background: #eaf2eb;
-  color: #315e3b;
+  background: var(--theme-bg-eaf2eb, #eaf2eb);
+  color: var(--theme-text-315e3b, #315e3b);
 }
 
 .andamento-icone {
-  background: #fff0dc;
-  color: #b96a12;
+  background: var(--theme-bg-fff0dc, #fff0dc);
+  color: var(--theme-text-b96a12, #b96a12);
 }
 
 .concluida-icone {
-  background: #e5f4e8;
-  color: #32804a;
+  background: var(--theme-bg-e5f4e8, #e5f4e8);
+  color: var(--theme-text-32804a, #32804a);
 }
 
 .resumo-card p {
@@ -399,7 +313,7 @@ function classePrioridade(prioridade) {
 .lista-projetos {
   padding: 22px;
   border-radius: 16px;
-  background: #f7f9f7;
+  background: var(--theme-bg-f7f9f7, #f7f9f7);
 }
 
 .secao-cabecalho {
@@ -426,10 +340,10 @@ function classePrioridade(prioridade) {
   display: flex;
   align-items: center;
   min-height: 42px;
-  border: 1px solid #dce3dc;
+  border: 1px solid var(--theme-border-dce3dc, #dce3dc);
   border-radius: 9px;
-  background: #fff;
-  color: #516052;
+  background: var(--theme-bg-ffffff, #fff);
+  color: var(--theme-text-516052, #516052);
 }
 
 .campo-busca {
@@ -445,7 +359,7 @@ function classePrioridade(prioridade) {
   width: 190px;
   border: 0;
   outline: 0;
-  color: #1a3721;
+  color: var(--theme-text-1a3721, #1a3721);
   font: inherit;
   font-size: 0.85rem;
 }
@@ -466,9 +380,9 @@ function classePrioridade(prioridade) {
 .projeto-card {
   overflow: hidden;
   min-width: 0;
-  border: 1px solid #e1e5e1;
+  border: 1px solid var(--theme-border-e1e5e1, #e1e5e1);
   border-radius: 12px;
-  background: #ebebeb;
+  background: var(--theme-bg-ebebeb, #ebebeb);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
@@ -486,8 +400,8 @@ function classePrioridade(prioridade) {
   flex: 0 0 42px;
   place-items: center;
   border-radius: 11px;
-  background: #eaf2eb;
-  color: #315e3b;
+  background: var(--theme-bg-eaf2eb, #eaf2eb);
+  color: var(--theme-text-315e3b, #315e3b);
   font-size: 1.35rem;
 }
 
@@ -507,14 +421,14 @@ function classePrioridade(prioridade) {
 }
 
 .projeto-link:hover {
-  color: #315e3b;
+  color: var(--theme-text-315e3b, #315e3b);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .projeto-link:focus-visible {
   border-radius: 3px;
-  outline: 2px solid #4e7855;
+  outline: 2px solid var(--theme-border-4e7855, #4e7855);
   outline-offset: 3px;
 }
 
@@ -528,7 +442,7 @@ function classePrioridade(prioridade) {
 
 .contador-tarefas {
   flex: 0 0 auto;
-  color: #68756a;
+  color: var(--theme-text-68756a, #68756a);
   font-size: 0.8rem;
 }
 
@@ -547,7 +461,7 @@ function classePrioridade(prioridade) {
   min-height: 100px;
   padding: 12px 14px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--theme-bg-ffffff, #fff);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
@@ -583,7 +497,7 @@ function classePrioridade(prioridade) {
 
 .tarefa-principal h4 {
   margin: 0;
-  color: #000;
+  color: var(--theme-text-000000, #000);
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.25;
@@ -595,7 +509,7 @@ function classePrioridade(prioridade) {
   align-items: center;
   gap: 5px;
   margin: 8px 0 0;
-  color: #999;
+  color: var(--theme-text-999999, #999);
   font-size: 0.68rem;
 }
 
@@ -618,33 +532,33 @@ function classePrioridade(prioridade) {
 }
 
 .etiqueta-status.status-fazer {
-  background: #edf1ed;
-  color: #526653;
+  background: var(--theme-bg-edf1ed, #edf1ed);
+  color: var(--theme-text-526653, #526653);
 }
 
 .etiqueta-status.status-em_processo {
-  background: #fff0dc;
-  color: #a75e0b;
+  background: var(--theme-bg-fff0dc, #fff0dc);
+  color: var(--theme-text-a75e0b, #a75e0b);
 }
 
 .etiqueta-status.status-concluido {
-  background: #e5f4e8;
-  color: #28713e;
+  background: var(--theme-bg-e5f4e8, #e5f4e8);
+  color: var(--theme-text-28713e, #28713e);
 }
 
 .prioridade-alta {
-  background: #ffe3e5;
-  color: #bd3342;
+  background: var(--theme-bg-ffe3e5, #ffe3e5);
+  color: var(--theme-text-bd3342, #bd3342);
 }
 
 .prioridade-media {
-  background: #fff0dc;
-  color: #a75e0b;
+  background: var(--theme-bg-fff0dc, #fff0dc);
+  color: var(--theme-text-a75e0b, #a75e0b);
 }
 
 .prioridade-baixa {
-  background: #eff3d8;
-  color: #6e761c;
+  background: var(--theme-bg-eff3d8, #eff3d8);
+  color: var(--theme-text-6e761c, #6e761c);
 }
 
 .estado-vazio {
@@ -653,7 +567,7 @@ function classePrioridade(prioridade) {
 }
 
 .estado-vazio > .material-symbols-outlined {
-  color: #829184;
+  color: var(--theme-text-829184, #829184);
   font-size: 2.4rem;
 }
 
@@ -733,4 +647,6 @@ function classePrioridade(prioridade) {
     font-size: 0.7rem;
   }
 }
+.abrir-tarefa { background: none; border: 0; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-align: left; }
+.filtros { flex-wrap: wrap; }
 </style>

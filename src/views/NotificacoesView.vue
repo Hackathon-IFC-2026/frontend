@@ -21,8 +21,10 @@
           </button>
         </div>
 
+        <p v-if="notificacoesStore.error" role="alert">{{ notificacoesStore.error }}</p>
         <div class="card-container">
           <!-- Filtros de Abas -->
+          <label class="tipo-filtro">Tipo <select v-model="tipo"><option value="todos">Todos os tipos</option><option v-for="t in [...new Set(notificacoesStore.notificacoes.map(n => n.tipo))]" :key="t" :value="t">{{ ({ atribuicao: 'Atribuição', alteracao: 'Alteração', conclusao: 'Conclusão', prazo: 'Prazo próximo', atraso: 'Atraso', participacao: 'Participação', permissao: 'Permissão', remocao: 'Remoção' })[t] || t }}</option></select></label>
           <div class="tabs">
             <button
               :class="{ active: filtro === 'todas' }"
@@ -60,7 +62,7 @@
               :key="item.id"
               class="notificacao-item"
               :class="{ 'nao-lida': !item.lida }"
-              @click="!item.lida && notificacoesStore.marcarComoLida(item.id)"
+              @click="abrir(item)" @keydown.enter="abrir(item)" tabindex="0" role="button"
             >
               <!-- Ícone por Tipo -->
               <div class="icon-box" :class="item.tipo || 'info'">
@@ -108,17 +110,19 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+const router = useRouter()
+const tipo = ref('todos')
+async function abrir(item) {
+  if (!item.lida) await notificacoesStore.marcarComoLida(item.id)
+  if (item.projeto && item.tipo !== 'remocao') router.push({ name: 'projeto-detalhes', params: { id: item.projeto }, query: item.tarefa ? { tarefa: item.tarefa } : {} })
+}
 import { useNotificacoesStore } from '@/stores/notificacoes'
 
 const notificacoesStore = useNotificacoesStore()
 const filtro = ref('todas')
 
-const notificacoesFiltradas = computed(() => {
-  if (filtro.value === 'naoLidas') {
-    return notificacoesStore.notificacoes.filter(n => !n.lida)
-  }
-  return notificacoesStore.notificacoes
-})
+const notificacoesFiltradas = computed(() => notificacoesStore.notificacoes.filter(n => (filtro.value !== 'naoLidas' || !n.lida) && (tipo.value === 'todos' || n.tipo === tipo.value)))
 
 function getIcone(tipo) {
   switch (tipo) {
@@ -175,12 +179,12 @@ onMounted(() => {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #333;
+  color: var(--theme-text-333333, #333);
 }
 
 .subtitle {
   margin: 5px 0 0;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.85rem;
 }
 
@@ -189,8 +193,8 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   background: transparent;
-  border: 1px solid #1A3721;
-  color: #1A3721;
+  border: 1px solid var(--theme-border-1a3721, #1A3721);
+  color: var(--theme-text-1a3721, #1A3721);
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -200,11 +204,11 @@ onMounted(() => {
 }
 
 .mark-all-btn:hover {
-  background-color: #e4f4e6;
+  background-color: var(--theme-bg-e4f4e6, #e4f4e6);
 }
 
 .card-container {
-  background: #ffffff;
+  background: var(--theme-bg-ffffff, #ffffff);
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -214,7 +218,7 @@ onMounted(() => {
 .tabs {
   display: flex;
   gap: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--theme-border-eeeeee, #eee);
   padding-bottom: 12px;
   margin-bottom: 15px;
 }
@@ -224,7 +228,7 @@ onMounted(() => {
   border: none;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #777;
+  color: var(--theme-text-777777, #777);
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -232,8 +236,8 @@ onMounted(() => {
 }
 
 .tabs button.active {
-  background-color: #e4f4e6;
-  color: #1A3721;
+  background-color: var(--theme-bg-e4f4e6, #e4f4e6);
+  color: var(--theme-text-1a3721, #1A3721);
 }
 
 .lista-notificacoes {
@@ -248,19 +252,19 @@ onMounted(() => {
   gap: 14px;
   padding: 14px;
   border-radius: 10px;
-  border: 1px solid #f0f0f0;
-  background-color: #fafafa;
+  border: 1px solid var(--theme-border-f0f0f0, #f0f0f0);
+  background-color: var(--theme-bg-fafafa, #fafafa);
   transition: 0.2s;
 }
 
 .notificacao-item.nao-lida {
-  background-color: #ffffff;
-  border-left: 4px solid #1A3721;
+  background-color: var(--theme-bg-ffffff, #ffffff);
+  border-left: 4px solid var(--theme-border-1a3721, #1A3721);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
 }
 
 .notificacao-item:hover {
-  border-color: #ddd;
+  border-color: var(--theme-border-dddddd, #ddd);
 }
 
 .icon-box {
@@ -273,10 +277,10 @@ onMounted(() => {
   justify-content: center;
 }
 
-.icon-box.sucesso { background-color: #e8f5e9; color: #2e7d32; }
-.icon-box.alerta  { background-color: #fff8e1; color: #f57f17; }
-.icon-box.erro    { background-color: #ffebee; color: #c62828; }
-.icon-box.info    { background-color: #e4f4e6; color: #1A3721; }
+.icon-box.sucesso { background-color: var(--theme-bg-e8f5e9, #e8f5e9); color: var(--theme-text-2e7d32, #2e7d32); }
+.icon-box.alerta  { background-color: var(--theme-bg-fff8e1, #fff8e1); color: var(--theme-text-f57f17, #f57f17); }
+.icon-box.erro    { background-color: var(--theme-bg-ffebee, #ffebee); color: var(--theme-text-c62828, #c62828); }
+.icon-box.info    { background-color: var(--theme-bg-e4f4e6, #e4f4e6); color: var(--theme-text-1a3721, #1A3721); }
 
 .conteudo {
   flex: 1;
@@ -293,18 +297,18 @@ onMounted(() => {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #333;
+  color: var(--theme-text-333333, #333);
 }
 
 .data {
   font-size: 0.72rem;
-  color: #999;
+  color: var(--theme-text-999999, #999);
 }
 
 .mensagem {
   margin: 0;
   font-size: 0.82rem;
-  color: #666;
+  color: var(--theme-text-666666, #666);
   line-height: 1.4;
 }
 
@@ -316,7 +320,7 @@ onMounted(() => {
 .action-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -325,13 +329,13 @@ onMounted(() => {
 }
 
 .action-btn:hover {
-  background-color: #eee;
-  color: #333;
+  background-color: var(--theme-bg-eeeeee, #eee);
+  color: var(--theme-text-333333, #333);
 }
 
 .action-btn.delete:hover {
-  background-color: #ffebee;
-  color: #c62828;
+  background-color: var(--theme-bg-ffebee, #ffebee);
+  color: var(--theme-text-c62828, #c62828);
 }
 
 .state-container {
@@ -340,7 +344,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   text-align: center;
 }
 
@@ -353,7 +357,7 @@ onMounted(() => {
 .empty-title {
   margin: 0;
   font-weight: 700;
-  color: #555;
+  color: var(--theme-text-555555, #555);
 }
 
 .empty-desc {
@@ -364,8 +368,8 @@ onMounted(() => {
 .spinner {
   width: 24px;
   height: 24px;
-  border: 3px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #1A3721;
+  border: 3px solid var(--theme-border-000000-0_1, rgba(0, 0, 0, 0.1));
+  border-top-color: var(--theme-border-1a3721, #1A3721);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   margin-bottom: 12px;
@@ -380,4 +384,5 @@ onMounted(() => {
     padding: 30px;
   }
 }
+.tipo-filtro { display: flex; gap: 10px; align-items: center; padding: 16px; color: var(--color-text); }.tipo-filtro select { padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: inherit; }
 </style>

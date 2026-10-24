@@ -1,0 +1,198 @@
+/* Theme overrides keep each component's original colors as light-mode fallbacks. */
+html.dark-mode {
+  --theme-bg-a58cdb: hsl(259 40% 19%);
+  --theme-bg-a6adb0: var(--color-surface);
+  --theme-bg-b5e0ba: hsl(127 40% 19%);
+  --theme-bg-d1d5db: hsl(216 12% 19%);
+  --theme-bg-d5d5d5: var(--color-surface);
+  --theme-bg-d9d9d9: var(--color-surface);
+  --theme-bg-dfece2: hsl(134 25% 19%);
+  --theme-bg-e0ebe2: hsl(131 22% 19%);
+  --theme-bg-e0ece3: hsl(135 24% 19%);
+  --theme-bg-e1eee4: hsl(134 28% 19%);
+  --theme-bg-e4f4e6: hsl(128 40% 19%);
+  --theme-bg-e4f4e8: hsl(135 40% 19%);
+  --theme-bg-e5efe7: hsl(132 24% 19%);
+  --theme-bg-e5f4e8: hsl(132 40% 19%);
+  --theme-bg-e6ebe7: var(--color-surface);
+  --theme-bg-e77d80: hsl(358 40% 19%);
+  --theme-bg-e8f5e9: hsl(125 39% 19%);
+  --theme-bg-e8f5ec: hsl(138 39% 19%);
+  --theme-bg-e9eee9: hsl(120 13% 19%);
+  --theme-bg-eaf2eb: hsl(128 24% 19%);
+  --theme-bg-ebebeb: var(--color-surface);
+  --theme-bg-edf0ed: var(--color-surface);
+  --theme-bg-edf0ee: var(--color-surface);
+  --theme-bg-edf1ed: hsl(120 12% 19%);
+  --theme-bg-eee9fb: hsl(257 40% 19%);
+  --theme-bg-eeeeee: var(--color-surface);
+  --theme-bg-eff3d8: hsl(69 40% 19%);
+  --theme-bg-f1f4f2: hsl(140 12% 19%);
+  --theme-bg-f4f6f4: var(--color-surface);
+  --theme-bg-f5f5f5: var(--color-surface);
+  --theme-bg-f5f5f7: var(--color-surface);
+  --theme-bg-f5f8f5: hsl(120 18% 19%);
+  --theme-bg-f5f9f6: hsl(135 25% 19%);
+  --theme-bg-f7f9f7: hsl(120 14% 19%);
+  --theme-bg-f8faf8: hsl(120 17% 19%);
+  --theme-bg-f8fafc: hsl(210 40% 19%);
+  --theme-bg-f9f9f9: var(--color-surface);
+  --theme-bg-f9fafb: hsl(210 20% 19%);
+  --theme-bg-fafafa: var(--color-surface);
+  --theme-bg-ffd6d9: hsl(356 40% 19%);
+  --theme-bg-ffe3e5: hsl(356 40% 19%);
+  --theme-bg-ffebd4: hsl(32 40% 19%);
+  --theme-bg-ffebee: hsl(351 40% 19%);
+  --theme-bg-fff0dc: hsl(34 40% 19%);
+  --theme-bg-fff0ed: hsl(10 40% 19%);
+  --theme-bg-fff1f1: hsl(0 40% 19%);
+  --theme-bg-fff2cc: hsl(45 40% 19%);
+  --theme-bg-fff2f2: hsl(0 40% 19%);
+  --theme-bg-fff5dc: hsl(43 40% 19%);
+  --theme-bg-fff8e1: hsl(46 40% 19%);
+  --theme-bg-fff9e3: hsl(47 40% 19%);
+  --theme-bg-fff9e8: hsl(44 40% 19%);
+  --theme-bg-ffffff: var(--color-surface);
+  --theme-border-000000-0_1: color-mix(in srgb, var(--color-border) 10%, transparent);
+  --theme-border-000000-0_2: color-mix(in srgb, var(--color-border) 20%, transparent);
+  --theme-border-1a3721: hsl(134 36% 35%);
+  --theme-border-333333: var(--color-border);
+  --theme-border-4e7855: hsl(130 21% 35%);
+  --theme-border-718a77: var(--color-border);
+  --theme-border-a0aaa1: var(--color-border);
+  --theme-border-a44b58: hsl(351 37% 35%);
+  --theme-border-cbdacf: var(--color-border);
+  --theme-border-d3ded5: var(--color-border);
+  --theme-border-dbe5dd: var(--color-border);
+  --theme-border-dce3dc: var(--color-border);
+  --theme-border-dce4de: var(--color-border);
+  --theme-border-dce5de: var(--color-border);
+  --theme-border-dddddd: var(--color-border);
+  --theme-border-e1e5e1: var(--color-border);
+  --theme-border-e1e7e2: var(--color-border);
+  --theme-border-e2e9e3: var(--color-border);
+  --theme-border-e5eae6: var(--color-border);
+  --theme-border-e5ebe6: var(--color-border);
+  --theme-border-e7d39c: hsl(44 40% 35%);
+  --theme-border-e7ebe7: var(--color-border);
+  --theme-border-e7ece8: var(--color-border);
+  --theme-border-e8b4b4: hsl(0 40% 35%);
+  --theme-border-e8ede9: var(--color-border);
+  --theme-border-e8eee9: var(--color-border);
+  --theme-border-eeeeee: var(--color-border);
+  --theme-border-f0f0f0: var(--color-border);
+  --theme-border-f1f1f1: var(--color-border);
+  --theme-border-f1f3f5: var(--color-border);
+  --theme-border-f3f4f6: var(--color-border);
+  --theme-border-f8fafc: hsl(210 40% 35%);
+  --theme-border-fff9e3: hsl(47 40% 35%);
+  --theme-border-ffffff: var(--color-border);
+  --theme-text-000000: var(--color-text);
+  --theme-text-10b981: hsl(160 65% 85%);
+  --theme-text-111827: hsl(221 39% 89%);
+  --theme-text-183826: hsl(146 40% 89%);
+  --theme-text-1a3721: hsl(134 36% 89%);
+  --theme-text-1f2937: hsl(215 28% 88%);
+  --theme-text-24372a: hsl(139 21% 88%);
+  --theme-text-243e2c: hsl(138 27% 88%);
+  --theme-text-26382b: hsl(137 19% 88%);
+  --theme-text-28713e: hsl(138 48% 87%);
+  --theme-text-2b4532: hsl(136 23% 88%);
+  --theme-text-2e7d32: hsl(123 46% 86%);
+  --theme-text-315e3b: hsl(133 31% 87%);
+  --theme-text-32804a: hsl(138 44% 86%);
+  --theme-text-333333: var(--color-text);
+  --theme-text-344a3a: var(--color-text);
+  --theme-text-345a3d: hsl(134 27% 87%);
+  --theme-text-374151: hsl(217 19% 87%);
+  --theme-text-385240: hsl(138 19% 87%);
+  --theme-text-398353: hsl(141 39% 85%);
+  --theme-text-3b5742: hsl(135 19% 87%);
+  --theme-text-3d6846: hsl(133 26% 86%);
+  --theme-text-3d6947: hsl(134 27% 86%);
+  --theme-text-3d6a48: hsl(135 27% 86%);
+  --theme-text-3e7049: hsl(133 29% 86%);
+  --theme-text-415348: var(--color-text);
+  --theme-text-465c4b: var(--color-text);
+  --theme-text-468358: hsl(138 30% 85%);
+  --theme-text-4b5563: var(--color-text);
+  --theme-text-4e7855: hsl(130 21% 85%);
+  --theme-text-516052: var(--color-text);
+  --theme-text-526356: var(--color-text);
+  --theme-text-526653: var(--color-text);
+  --theme-text-555555: var(--color-text);
+  --theme-text-587461: var(--color-text);
+  --theme-text-647168: var(--color-text);
+  --theme-text-666666: var(--color-text);
+  --theme-text-66776b: var(--color-text);
+  --theme-text-66796b: var(--color-text);
+  --theme-text-67836e: var(--color-text);
+  --theme-text-68756a: var(--color-text);
+  --theme-text-69796e: var(--color-text);
+  --theme-text-6b7280: var(--color-text);
+  --theme-text-6c5720: hsl(43 54% 87%);
+  --theme-text-6e761c: hsl(65 62% 87%);
+  --theme-text-777777: var(--color-text);
+  --theme-text-7a8580: var(--color-text);
+  --theme-text-7d8a80: var(--color-text);
+  --theme-text-8064b9: hsl(260 38% 83%);
+  --theme-text-819087: var(--color-text);
+  --theme-text-819187: var(--color-text);
+  --theme-text-829086: var(--color-text);
+  --theme-text-829184: var(--color-text);
+  --theme-text-849087: var(--color-text);
+  --theme-text-87928a: var(--color-text);
+  --theme-text-888888: var(--color-text);
+  --theme-text-89958c: var(--color-text);
+  --theme-text-8b9a90: var(--color-text);
+  --theme-text-929e95: var(--color-text);
+  --theme-text-94a198: var(--color-text);
+  --theme-text-999999: var(--color-text);
+  --theme-text-9aa69d: var(--color-text);
+  --theme-text-9aa79d: var(--color-text);
+  --theme-text-9ca3af: var(--color-text);
+  --theme-text-a0aaa2: var(--color-text);
+  --theme-text-a2ada5: var(--color-text);
+  --theme-text-a3afa6: var(--color-text);
+  --theme-text-a75e0b: hsl(32 65% 86%);
+  --theme-text-ac812b: hsl(40 60% 85%);
+  --theme-text-b96a12: hsl(32 65% 85%);
+  --theme-text-bd3342: hsl(353 58% 84%);
+  --theme-text-c0392b: hsl(6 63% 84%);
+  --theme-text-c25a49: hsl(8 50% 83%);
+  --theme-text-c62828: hsl(0 65% 84%);
+  --theme-text-c74c4c: hsl(0 52% 83%);
+  --theme-text-dc2626: hsl(0 65% 83%);
+  --theme-text-e67300: hsl(30 65% 84%);
+  --theme-text-e6a800: hsl(44 65% 84%);
+  --theme-text-ef4444: hsl(0 65% 82%);
+  --theme-text-f57f17: hsl(28 65% 83%);
+  --theme-text-f59e0b: hsl(38 65% 83%);
+  --theme-text-ff334b: hsl(353 65% 82%);
+}
+
+html.dark-mode .auth-background .bg__a,
+html.dark-mode .auth-background .bg__b {
+  background: radial-gradient(ellipse at top, #263e2e, #101b14 80%);
+}
+
+html.dark-mode input,
+html.dark-mode select,
+html.dark-mode textarea {
+  color-scheme: dark;
+}
+
+html.dark-mode :is(input, textarea)::placeholder {
+  color: var(--color-text-muted);
+}
+html.dark-mode .toggle {
+  background-color: var(--color-toggle-off);
+}
+
+html.dark-mode .toggle.active {
+  background-color: #527e5b;
+}
+
+html.dark-mode .toggle-circle {
+  background-color: #f0f5ef;
+}

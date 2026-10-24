@@ -39,6 +39,8 @@
               type="button"
               class="toggle"
               :class="{ active: temaEscuro }"
+              role="switch"
+              :aria-checked="temaEscuro"
               @click="alternarTema"
               :aria-label="
                 temaEscuro
@@ -111,50 +113,16 @@
   </div>
 </template>
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-
-const temaEscuro = ref(false);
-const notificacoes = ref(true);
-
-function aplicarTema() {
-  document.documentElement.classList.toggle(
-    'dark-mode',
-    temaEscuro.value
-  );
-
-  localStorage.setItem(
-    'tema',
-    temaEscuro.value ? 'escuro' : 'claro'
-  );
-}
-
-function alternarTema() {
-  temaEscuro.value = !temaEscuro.value;
-  aplicarTema();
-}
-
-onMounted(() => {
-  // 1. Apenas lê se a chave existe e é igual a 'escuro'
-  const temaSalvo = localStorage.getItem('tema');
-
-  if (temaSalvo === 'escuro') {
-    temaEscuro.value = true;
-    document.documentElement.classList.add('dark-mode');
-  } else {
-    temaEscuro.value = false;
-    document.documentElement.classList.remove('dark-mode');
-  }
-
-  notificacoes.value =
-    localStorage.getItem('notificacoes') !== 'desativadas';
-});
-
-watch(notificacoes, (valor) => {
-  localStorage.setItem(
-    'notificacoes',
-    valor ? 'ativadas' : 'desativadas'
-  );
-});
+import { ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useThemeStore } from '@/stores/theme'
+const theme = useThemeStore()
+const { temaEscuro } = storeToRefs(theme)
+const alternarTema = theme.alternarTema
+const notificacoes = ref(localStorage.getItem('notificacoes') !== 'desativadas')
+watch(notificacoes, valor => {
+  localStorage.setItem('notificacoes', valor ? 'ativadas' : 'desativadas')
+})
 </script>
 <style scoped>
 .page-layout {
@@ -181,18 +149,18 @@ watch(notificacoes, (valor) => {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #333;
+  color: var(--theme-text-333333, #333);
 }
 
 .subtitle {
   margin: 5px 0 0;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.85rem;
 }
 
 .settings-card {
   width: 100%;
-  background-color: #fff;
+  background-color: var(--theme-bg-ffffff, #fff);
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -210,8 +178,8 @@ watch(notificacoes, (valor) => {
   height: 40px;
   min-width: 40px;
   border-radius: 10px;
-  background-color: #e4f4e6;
-  color: #1A3721;
+  background-color: var(--theme-bg-e4f4e6, #e4f4e6);
+  color: var(--theme-text-1a3721, #1A3721);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,14 +191,14 @@ watch(notificacoes, (valor) => {
 
 .section-header h3 {
   margin: 0;
-  color: #333;
+  color: var(--theme-text-333333, #333);
   font-size: 0.95rem;
   font-weight: 700;
 }
 
 .section-header p {
   margin: 3px 0 0;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.75rem;
 }
 
@@ -239,7 +207,7 @@ watch(notificacoes, (valor) => {
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  background-color: #f9f9f9;
+  background-color: var(--theme-bg-f9f9f9, #f9f9f9);
   padding: 12px;
   border-radius: 10px;
 }
@@ -256,11 +224,11 @@ watch(notificacoes, (valor) => {
   height: 38px;
   min-width: 38px;
   border-radius: 9px;
-  background-color: #fff;
+  background-color: var(--theme-bg-ffffff, #fff);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--theme-text-666666, #666);
 }
 
 .setting-icon .material-symbols-outlined {
@@ -269,7 +237,7 @@ watch(notificacoes, (valor) => {
 
 .setting-info strong {
   display: block;
-  color: #333;
+  color: var(--theme-text-333333, #333);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -277,13 +245,13 @@ watch(notificacoes, (valor) => {
 .setting-info small {
   display: block;
   margin-top: 3px;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.7rem;
 }
 
 .divider {
   height: 1px;
-  background-color: #eee;
+  background-color: var(--theme-bg-eeeeee, #eee);
   margin: 22px 0;
 }
 
@@ -294,7 +262,7 @@ watch(notificacoes, (valor) => {
   height: 24px;
   border: none;
   border-radius: 20px;
-  background-color: #d5d5d5;
+  background-color: var(--theme-bg-d5d5d5, #d5d5d5);
   padding: 0;
   cursor: pointer;
   transition: background-color 0.25s ease;
@@ -307,7 +275,7 @@ watch(notificacoes, (valor) => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background-color: #fff;
+  background-color: var(--theme-bg-ffffff, #fff);
   transition: transform 0.25s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
@@ -325,21 +293,21 @@ watch(notificacoes, (valor) => {
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  background-color: #f9f9f9;
+  background-color: var(--theme-bg-f9f9f9, #f9f9f9);
   padding: 14px;
   border-radius: 10px;
 }
 
 .about-box strong {
   display: block;
-  color: #333;
+  color: var(--theme-text-333333, #333);
   font-size: 0.9rem;
 }
 
 .about-box span {
   display: block;
   margin-top: 3px;
-  color: #888;
+  color: var(--theme-text-888888, #888);
   font-size: 0.7rem;
 }
 

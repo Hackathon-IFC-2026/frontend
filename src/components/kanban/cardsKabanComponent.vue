@@ -102,7 +102,7 @@ function aoFinalizarArrasto() {
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 .kanban-card {
-  background-color: #ffffff;
+  background-color: var(--theme-bg-ffffff, #ffffff);
   border-radius: 12px;
   padding: 12px 14px 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -133,7 +133,7 @@ function aoFinalizarArrasto() {
   margin: 0 0 4px 0;
   font-size: 0.82rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--theme-text-000000, #000000);
   line-height: 1.25;
   word-break: break-word;
 }
@@ -151,12 +151,12 @@ function aoFinalizarArrasto() {
   gap: 5px;
   font-size: 0.65rem;
   font-weight: 400;
-  color: #999999;
+  color: var(--theme-text-999999, #999999);
 }
 
 .icone-calendario {
   font-size: 11px;
-  color: #999999;
+  color: var(--theme-text-999999, #999999);
   line-height: 1;
 }
 
@@ -178,7 +178,7 @@ function aoFinalizarArrasto() {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background-color: #d9d9d9;
+  background-color: var(--theme-bg-d9d9d9, #d9d9d9);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -202,20 +202,20 @@ function aoFinalizarArrasto() {
 
 /* Alta: fundo rosa claro suave com texto vermelho */
 .prioridade-alta {
-  background-color: #ffd6d9;
-  color: #ff334b;
+  background-color: var(--theme-bg-ffd6d9, #ffd6d9);
+  color: var(--theme-text-ff334b, #ff334b);
 }
 
 /* Média: fundo laranja claro suave */
 .prioridade-media {
-  background-color: #ffebd4;
-  color: #e67300;
+  background-color: var(--theme-bg-ffebd4, #ffebd4);
+  color: var(--theme-text-e67300, #e67300);
 }
 
 /* Baixa: fundo amarelo claro suave com texto dourado/amarelo */
 .prioridade-baixa {
-  background-color: #fff2cc;
-  color: #e6a800;
+  background-color: var(--theme-bg-fff2cc, #fff2cc);
+  color: var(--theme-text-e6a800, #e6a800);
 }
 </style>
 

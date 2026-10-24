@@ -1,15 +1,15 @@
-```vue
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useSidebarStore } from './stores/sidebar.js'
-import AuthBackground from './components/AuthBackground.vue'
-import ToastNotification from './components/ToastNotification.vue'
-import FooterComponent from './components/FooterComponent.vue'
-import SidebarComponent from './components/SidebarComponent.vue'
+import AuthBackground from './components/layout/AuthBackground.vue'
+import ToastNotification from './components/shared/ToastNotification.vue'
+import FooterComponent from './components/layout/FooterComponent.vue'
+import SidebarComponent from './components/layout/SidebarComponent.vue'
+
+import { useWorkspaceSync } from './composables/useWorkspaceSync'
+useWorkspaceSync()
 
 const route = useRoute()
-const sidebarStore = useSidebarStore()
 
 const side = computed(() => route.meta.side ?? 'left')
 
@@ -41,7 +41,6 @@ const isAuthRoute = computed(() => {
 
     <div
       class="app-main"
-      :class="{ 'sidebar-collapsed': sidebarStore.isCollapsed }"
     >
 
       <main class="app-content">
@@ -64,7 +63,8 @@ const isAuthRoute = computed(() => {
   min-height: 100vh;
   width: 100%;
   display: flex;
-  background-color: #ffffff;
+  --sidebar-width: 260px;
+  background-color: var(--theme-bg-ffffff, #ffffff);
   position: relative;
 }
 
@@ -72,15 +72,10 @@ const isAuthRoute = computed(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  width: calc(100% - 235px);
-  margin-left: 235px;
-  transition: margin-left 0.25s ease, width 0.25s ease;
+  width: calc(100% - var(--sidebar-width, 260px));
+  margin-left: var(--sidebar-width, 260px);
+  min-width: 0;
   box-sizing: border-box;
-}
-
-.app-main.sidebar-collapsed {
-  width: calc(100% - 70px);
-  margin-left: 70px;
 }
 
 .app-content {
@@ -90,15 +85,15 @@ const isAuthRoute = computed(() => {
 }
 
 @media (max-width: 767px) {
-  .app-main,
-  .app-main.sidebar-collapsed {
+  .app-layout { flex-direction: column; }
+  .app-main {
     width: 100%;
     margin-left: 0;
   }
 
   .app-content {
     padding: 16px;
-    padding-bottom: 95px;
+    padding-bottom: 24px;
   }
 }
 </style>
