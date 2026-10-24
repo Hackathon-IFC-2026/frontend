@@ -49,22 +49,6 @@
 import { computed } from 'vue'
 import FiltroDropdown from '@/components/shared/FiltroDropdown.vue'
 
-const opcoesPrioridade = [
-  { value: 'todas', label: 'Todas as prioridades', tom: 'neutro' },
-  { value: 'alta', label: 'Alta', tom: 'alta' },
-  { value: 'media', label: 'Média', tom: 'media' },
-  { value: 'baixa', label: 'Baixa', tom: 'baixa' },
-]
-
-const opcoesParticipantes = computed(() => [
-  { value: 'todos', label: 'Todos os responsáveis', tom: 'neutro' },
-  ...props.participantes.map((pessoa) => ({
-    value: String(pessoa.id),
-    label: pessoa.nome,
-    tom: 'neutro',
-  })),
-])
-
 const props = defineProps({
   projeto: {
     type: Object,

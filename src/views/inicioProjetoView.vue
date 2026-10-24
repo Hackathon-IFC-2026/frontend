@@ -55,11 +55,13 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useProjectHistoryStore } from '@/stores/projectHistory'
 import api from '/services/api.js'
 import cardProjeto from '@/components/projects/cardProjeto.vue'
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 
 const authStore = useAuthStore()
+const projectHistoryStore = useProjectHistoryStore()
 const modalProjetoAberto = ref(false)
 const projetoEmEdicao = ref(null)
 const usuarioAtual = computed(() => authStore.usuario)
@@ -75,9 +77,14 @@ const projetos = ref([
     descricao: 'Decoração e iluminação natalina da cidade.',
     status: 'Em andamento',
     criadoEm: '2026-12-11',
-    criador: 'Equipe Kando',
+    criador: { id: 1, name: 'Ana', nome: 'Ana' },
     link: '',
-    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }, { nome: 'Carla' }]
+    participantes: [
+      { id: 1, nome: 'Ana' },
+      { id: 2, nome: 'Julia' },
+      { id: 3, nome: 'Amanda' },
+      { id: 4, nome: 'Anna' },
+    ]
   },
   {
     id: 2,
@@ -85,8 +92,12 @@ const projetos = ref([
     descricao: 'Paisagismo, bancos e iluminação pública.',
     status: 'Planejamento',
     criadoEm: '2027-01-15',
-    criador: 'Equipe Kando',
-    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }]
+    criador: { id: 1, name: 'Ana', nome: 'Ana' },
+    participantes: [
+      { id: 1, nome: 'Ana' },
+      { id: 3, nome: 'Amanda' },
+      { id: 4, nome: 'Anna' },
+    ]
   },
   {
     id: 3,
@@ -238,7 +249,9 @@ async function abrirFormularioProjeto(projeto = null) {
 
 function adicionarProjeto(dadosProjeto) {
   const proximoId = Math.max(0, ...projetos.value.map((projeto) => Number(projeto.id) || 0)) + 1
-  projetos.value.unshift({ id: proximoId, ...dadosProjeto })
+  const novoProjeto = { id: proximoId, ...dadosProjeto }
+  projectHistoryStore.registrarProjeto(novoProjeto)
+  projetos.value.unshift(novoProjeto)
 }
 
 function podeGerenciarProjeto(projeto) {
@@ -264,6 +277,7 @@ function atualizarProjeto(projetoAtualizado) {
   )
 
   if (indice === -1) return
+  projectHistoryStore.registrarProjeto(projetoAtualizado)
   projetos.value[indice] = projetoAtualizado
   projetoEmEdicao.value = null
 }

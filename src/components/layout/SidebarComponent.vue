@@ -27,6 +27,11 @@
             <span v-if="!sidebarStore.isCollapsed">Calendário</span>
           </router-link>
 
+          <router-link to="/historico" class="menu-item">
+            <span class="material-symbols-outlined">history</span>
+            <span v-if="!sidebarStore.isCollapsed">Histórico</span>
+          </router-link>
+
           <router-link to="/notificacoes" class="menu-item">
             <span class="material-symbols-outlined menu-icon">notifications</span>
             <span v-if="!sidebarStore.isCollapsed">Notificações</span>
@@ -66,6 +71,15 @@
 
       <router-link to="/calendario" class="mobile-item">
         <span class="material-symbols-outlined">calendar_month</span>
+      </router-link>
+
+      <router-link
+        to="/historico"
+        class="mobile-item"
+        aria-label="Histórico"
+        title="Histórico"
+      >
+        <span class="material-symbols-outlined">history</span>
       </router-link>
 
       <router-link to="/configuracoes" class="mobile-item">
