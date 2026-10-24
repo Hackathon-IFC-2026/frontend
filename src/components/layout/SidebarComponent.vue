@@ -239,7 +239,7 @@ onUnmounted(() => {
           @click="mobile ? sidebarStore.closeMobile() : sidebarStore.toggle()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">{{
-            mobile ? 'close' : compacta ? 'left_panel_open' : 'left_panel_close'
+            mobile ? 'close' : compacta ? 'chevron_right' : 'chevron_left'
           }}</span>
         </button>
       </div>
@@ -409,6 +409,21 @@ onUnmounted(() => {
 }
 .icon-button .material-symbols-outlined {
   font-size: 21px;
+}
+.toggle-sidebar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary-dark);
+  color: #fff;
+}
+.toggle-sidebar .material-symbols-outlined {
+  font-size: 17px;
+}
+.toggle-sidebar:hover {
+  background: var(--color-primary-dark);
+  color: #fff;
+  filter: brightness(1.12);
 }
 .group-label {
   color: var(--sidebar-muted);
@@ -610,10 +625,8 @@ onUnmounted(() => {
 }
 .compacta .toggle-sidebar {
   position: absolute;
-  top: 51px;
-  left: 9px;
-  width: 30px;
-  height: 26px;
+  top: 11px;
+  right: -28px;
 }
 .compacta .menu-item {
   gap: 0;

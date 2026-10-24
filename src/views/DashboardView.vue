@@ -34,7 +34,6 @@ const proximas = computed(() =>
 <template>
   <main class="dashboard">
     <header>
-      <span class="eyebrow">SEU ESPAÇO DE TRABALHO</span>
       <h1>Olá, {{ (auth.usuario?.nome || auth.usuario?.name || 'você').split(' ')[0] }}.</h1>
       <p>Uma visão do que está acontecendo nos seus projetos.</p>
     </header>
