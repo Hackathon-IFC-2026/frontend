@@ -95,16 +95,6 @@
             </select>
           </div>
         </div>
-        <div class="duas-colunas">
-          <div class="campo"><label for="task-complexity">Complexidade estimada</label>
-            <select id="task-complexity" v-model.number="form.complexidade">
-              <option :value="1">Baixa · 1 ponto</option><option :value="2">Média · 2 pontos</option><option :value="3">Alta · 3 pontos</option>
-            </select>
-          </div>
-          <div class="campo"><label for="task-blocked">Dependências</label>
-            <select id="task-blocked" v-model="form.impedida"><option :value="false">Disponível para executar</option><option :value="true">Bloqueada por dependência</option></select>
-          </div>
-        </div>
         <div class="campo">
           <label for="task-assignee">Responsável</label>
           <select id="task-assignee" v-model="form.responsavel" :disabled="!podeAtribuir">
@@ -166,8 +156,6 @@ function formularioInicial() {
     status: props.tarefa?.status || props.statusInicial,
     prazo: props.tarefa?.prazo || '',
     data_inicio: props.tarefa?.data_inicio || '',
-    complexidade: props.tarefa?.complexidade || 1,
-    impedida: props.tarefa?.impedida || false,
     responsavel: props.tarefa
       ? (props.tarefa.responsaveis[0]?.id ?? null)
       : (auth.usuario?.id ?? null),
@@ -204,8 +192,6 @@ async function salvar() {
   try {
     const dados = {
       projeto: Number(props.projetoId),
-      complexidade: form.complexidade,
-      impedida: form.impedida,
       titulo: form.titulo.trim(),
       descricao: form.descricao.trim(),
       status: form.status,
