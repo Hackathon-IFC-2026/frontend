@@ -337,8 +337,17 @@ function excluirProjeto(projeto) {
   background: #234d2e;
 }
 
+.adicionar-projeto:active {
+  transform: translateY(0);
+}
+
 .adicionar-projeto .material-symbols-outlined {
   font-size: 1.25rem;
+  transition: transform 0.2s ease;
+}
+
+.adicionar-projeto:hover .material-symbols-outlined {
+  transform: rotate(90deg);
 }
 
 .projetos-grid {
@@ -392,6 +401,19 @@ function excluirProjeto(projeto) {
 
   .projetos-grid {
     gap: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adicionar-projeto,
+  .adicionar-projeto .material-symbols-outlined {
+    transition: none;
+  }
+
+  .adicionar-projeto:hover,
+  .adicionar-projeto:active,
+  .adicionar-projeto:hover .material-symbols-outlined {
+    transform: none;
   }
 }
 </style>

@@ -4,22 +4,24 @@
       ref="gatilho"
       type="button"
       class="filtro-gatilho"
-      :class="`tom--${opcaoSelecionada?.tom || 'neutro'}`"
+      :class="[
+        `tom--${opcaoSelecionada?.tom || 'neutro'}`,
+        { compacto },
+      ]"
       :aria-label="label"
       aria-haspopup="listbox"
       :aria-expanded="aberto"
       @click="alternar"
     >
       <span class="indicador-opcao" aria-hidden="true"></span>
-      <span>{{ opcaoSelecionada?.label || 'Selecione' }}</span>
-      <span class="material-symbols-outlined seta" aria-hidden="true">
-        expand_more
-      </span>
+      <span class="texto-gatilho">{{ opcaoSelecionada?.label || 'Selecione' }}</span>
+      <span class="seta" aria-hidden="true"></span>
     </button>
 
     <div
       v-if="aberto"
       class="filtro-opcoes"
+      :class="{ compacto }"
       role="listbox"
       :aria-label="label"
     >
@@ -30,7 +32,10 @@
         class="filtro-opcao"
         :class="[
           `tom--${opcao.tom || 'neutro'}`,
-          { selecionada: opcao.value === modelValue },
+          {
+            selecionada: opcao.value === modelValue,
+            compacto,
+          },
         ]"
         role="option"
         :aria-selected="opcao.value === modelValue"
@@ -65,6 +70,10 @@ const props = defineProps({
   label: {
     type: String,
     required: true,
+  },
+  compacto: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -180,14 +189,24 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
 }
 
 .filtro-gatilho .seta {
-  flex: 0 0 auto;
-  color: #66816a;
-  font-size: 1.2rem;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  margin-left: auto;
+  border-right: 2px solid #66816a;
+  border-bottom: 2px solid #66816a;
+  transform: rotate(45deg) translateY(-2px);
   transition: transform 0.18s ease;
 }
 
+.texto-gatilho {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .filtro-gatilho[aria-expanded='true'] .seta {
-  transform: rotate(180deg);
+  transform: rotate(225deg) translate(-2px, -1px);
 }
 
 .filtro-gatilho.tom--fazer {
@@ -216,6 +235,14 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   color: #b42318;
 }
 
+.filtro-gatilho.compacto {
+  min-height: 40px;
+  gap: 8px;
+  padding: 0 11px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+}
+
 .filtro-opcoes {
   position: absolute;
   top: calc(100% + 8px);
@@ -231,6 +258,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   border-radius: 13px;
   background: #fff;
   box-shadow: 0 12px 28px rgba(26, 55, 33, 0.16);
+}
+
+.filtro-opcoes.compacto {
+  top: calc(100% + 6px);
+  gap: 3px;
+  padding: 6px;
+  border-radius: 10px;
 }
 
 .filtro-opcao {
@@ -249,6 +283,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   text-align: left;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.filtro-opcao.compacto {
+  min-height: 35px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  font-size: 0.78rem;
 }
 
 .filtro-opcao:hover {

@@ -82,10 +82,22 @@ defineEmits(['abrir-modal'])
   color: #3d6947;
   font: 600 11px Poppins, sans-serif;
   cursor: pointer;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.participantes-topo button:hover {
+  transform: translateY(-1px);
+  border-color: #a9c3ad;
+  background: #eaf3ec;
 }
 
 .participantes-topo .material-symbols-outlined {
   font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+.participantes-topo button:hover .material-symbols-outlined {
+  transform: rotate(12deg) scale(1.08);
 }
 
 .participantes-lista {
@@ -105,6 +117,13 @@ defineEmits(['abrir-modal'])
   border-radius: 25px;
   font-size: 11px;
   color: #465c4b;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.participante-item:hover {
+  transform: translateY(-2px);
+  border-color: #c5d8c8;
+  box-shadow: 0 4px 10px rgba(22, 45, 28, 0.07);
 }
 
 .participante-avatar {
@@ -118,6 +137,20 @@ defineEmits(['abrir-modal'])
   color: #3e7049;
   font-size: 10px;
   font-weight: 700;
+  transition: transform 0.18s ease;
+}
+
+.participante-item:hover .participante-avatar {
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .participantes-topo button,
+  .participantes-topo .material-symbols-outlined,
+  .participante-item,
+  .participante-avatar {
+    transition: none;
+  }
 }
 
 .sem-participantes {
@@ -126,4 +159,3 @@ defineEmits(['abrir-modal'])
   font-size: 11px;
 }
 </style>
-

@@ -202,12 +202,14 @@ function classeStatus(status) {
             v-model="filtroStatus"
             :options="OPCOES_FILTRO_STATUS"
             label="Filtrar tarefas por status"
+            compacto
           />
 
           <FiltroDropdown
             v-model="filtroPrioridade"
             :options="OPCOES_FILTRO_PRIORIDADE"
             label="Filtrar tarefas por prioridade"
+            compacto
           />
         </div>
       </div>
@@ -429,17 +431,17 @@ function classeStatus(status) {
 
 .filtros {
   display: grid;
-  grid-template-columns: minmax(220px, 1.7fr) repeat(2, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(190px, 1.7fr) repeat(2, minmax(140px, 1fr));
+  gap: 8px;
   width: 100%;
   min-width: 0;
 }
 
 .campo-busca {
   align-items: center;
-  min-height: 46px;
+  min-height: 40px;
   border: 1px solid #d4dfd5;
-  border-radius: 11px;
+  border-radius: 9px;
   background: #fff;
   color: #516052;
   box-shadow: 0 2px 7px rgba(26, 55, 33, 0.04);
@@ -457,7 +459,7 @@ function classeStatus(status) {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 0 13px;
+  padding: 0 11px;
   min-width: 0;
 }
 
@@ -476,7 +478,7 @@ function classeStatus(status) {
   background: transparent;
   color: #1a3721;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .projetos-lista {
