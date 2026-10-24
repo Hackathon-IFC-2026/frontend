@@ -1,273 +1,160 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+﻿import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 import api from '/services/api.js'
+import { listarPaginas, mensagemErro } from '/services/apiHelpers.js'
+import { useProjectStore } from './projectStore'
+import { useAuthStore } from './auth'
+import { podeEditarTarefa } from '../utils/taskPermissions'
 
-// Altere para false quando a API Django estiver pronta.
-const MODO_DEMONSTRACAO = true
-
-const dadosIniciais = [
-  {
-    id: 1,
-    projeto: 1,
-    titulo: 'Criar protótipo das telas',
-    descricao: 'Desenvolver o protótipo das telas principais do projeto.',
-    status: 'a_fazer',
-    prioridade: 'alta',
-    data_inicio: '2026-10-23',
-    prazo: '2026-10-28',
-    concluida_em: null,
-    responsaveis: [
-      { id: 1, nome: 'Ana' }
-    ],
-    comentarios: [],
-    checklist: [
-      { id: 1, texto: 'Definir layout', concluido: true },
-      { id: 2, texto: 'Criar protótipo', concluido: false }
-    ],
-    materiais: []
-  },
-  {
-    id: 2,
-    projeto: 1,
-    titulo: 'Organizar documentação',
-    descricao: 'Preparar a documentação do projeto.',
-    status: 'em_andamento',
-    prioridade: 'media',
-    data_inicio: '2026-10-22',
-    prazo: '2026-10-30',
-    concluida_em: null,
-    responsaveis: [
-      { id: 2, nome: 'Julia' }
-    ],
-    comentarios: [],
-    checklist: [],
-    materiais: []
+const statusUI = { aberta: 'a_fazer', andamento: 'em_andamento', concluida: 'concluido' }
+const statusAPI = { a_fazer: 'aberta', em_andamento: 'andamento', concluido: 'concluida' }
+const prioridadeUI = { 1: 'baixa', 2: 'media', 3: 'alta' }
+const prioridadeAPI = { baixa: 1, media: 2, alta: 3 }
+function dataInput(value) {
+  if (!value) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value))
+}
+function payload(dados) {
+  const result = {}
+  for (const campo of ['projeto', 'titulo', 'descricao', 'data_inicio']) if (campo in dados) result[campo] = dados[campo]
+  if ('status' in dados) result.situacao = statusAPI[dados.status]
+  if ('prioridade' in dados) result.prioridade = prioridadeAPI[dados.prioridade]
+  if ('prazo' in dados) result.prazo = dados.prazo ? /^\d{4}-\d{2}-\d{2}$/.test(dados.prazo) ? dados.prazo + 'T23:59:59-03:00' : dados.prazo : null
+  if ('responsaveis' in dados) {
+    if (dados.responsaveis.length > 1) throw new Error('Selecione apenas um responsável por tarefa.')
+    result.responsavel = dados.responsaveis[0]?.id ?? dados.responsaveis[0] ?? null
   }
-]
-
-const copiar = (valor) => JSON.parse(JSON.stringify(valor))
+  return result
+}
 
 export const useTaskStore = defineStore('tasks', () => {
-  const tarefas = ref(
-    MODO_DEMONSTRACAO ? copiar(dadosIniciais) : []
-  )
-
+  const projects = useProjectStore()
+  const auth = useAuthStore()
+  const todasTarefas = ref([])
+  const projetoSelecionado = ref(null)
+  const tarefas = computed(() => projetoSelecionado.value == null ? todasTarefas.value : todasTarefas.value.filter(t => t.projeto === projetoSelecionado.value))
   const tarefaAtual = ref(null)
   const loading = ref(false)
   const error = ref(null)
-
-  async function listarTarefas(projetoId) {
-    loading.value = true
+  let projetoAtivo = null
+  let versao = 0
+  let detalheVersao = 0
+  let revisao = 0
+  function limparQuadro() { versao++; detalheVersao++; projetoAtivo = null; projetoSelecionado.value = null; tarefaAtual.value = null; error.value = null; loading.value = false }
+  function limparSessao() { limparQuadro(); todasTarefas.value = [] }
+  window.addEventListener('auth:changed', limparSessao)
+  window.addEventListener('auth:expired', limparSessao)
+  function normalizar(t) {
+    return { ...t, projeto: Number(t.projeto?.id ?? t.projeto), status: statusUI[t.situacao], prioridade: prioridadeUI[t.prioridade], prazo: dataInput(t.prazo), prazo_em: t.prazo,
+      created_by: t.criador, responsaveis: t.responsavel ? [projects.pessoa(t.responsavel?.id ?? t.responsavel)] : [],
+      comentarios: t.comentarios || [], checklist: t.checklist || [], materiais: t.materiais || [],
+    }
+  }
+  function upsert(raw) {
+    revisao++
+    const t = normalizar(raw)
+    const i = todasTarefas.value.findIndex(item => item.id === t.id)
+    if (i < 0) todasTarefas.value.push(t); else todasTarefas.value[i] = t
+    if (tarefaAtual.value?.id === t.id) tarefaAtual.value = { ...tarefaAtual.value, ...t, comentarios: tarefaAtual.value.comentarios, checklist: tarefaAtual.value.checklist, materiais: tarefaAtual.value.materiais }
+    projects.atualizarResumo(t.projeto, todasTarefas.value.filter(item => item.projeto === t.projeto))
+    return t
+  }
+  async function executar(operacao) {
     error.value = null
-
-    try {
-      if (MODO_DEMONSTRACAO) {
-        return tarefas.value.filter(
-          tarefa => Number(tarefa.projeto) === Number(projetoId)
-        )
-      }
-
-      const { data } = await api.get('/tarefas/', {
-        params: { projeto: projetoId }
-      })
-
-      tarefas.value = Array.isArray(data)
-        ? data
-        : data.results || []
-
-      return tarefas.value
-    } catch (err) {
-      error.value = 'Erro ao carregar tarefas.'
-      throw err
-    } finally {
-      loading.value = false
-    }
+    loading.value = true
+    try { return await operacao() }
+    catch (err) { error.value = mensagemErro(err); throw err }
+    finally { loading.value = false }
   }
-
-  async function buscarTarefa(id) {
-    if (MODO_DEMONSTRACAO) {
-      const encontrada = tarefas.value.find(
-        tarefa => Number(tarefa.id) === Number(id)
-      )
-
-      if (!encontrada) {
-        throw new Error('Tarefa não encontrada.')
-      }
-
-      tarefaAtual.value = copiar(encontrada)
-      return tarefaAtual.value
-    }
-
-    const { data } = await api.get(`/tarefas/${id}/`)
-    tarefaAtual.value = data
-    return data
-  }
-
-  async function criarTarefa(dados) {
-    let criada
-
-    if (MODO_DEMONSTRACAO) {
-      criada = {
-        id: Date.now(),
-        ...copiar(dados),
-        comentarios: [],
-        checklist: [],
-        materiais: [],
-        concluida_em: dados.status === 'concluido'
-          ? new Date().toISOString()
-          : null
-      }
-    } else {
-      const response = await api.post('/tarefas/', dados)
-      criada = response.data
-    }
-
-    tarefas.value.push(criada)
-    return criada
-  }
-
-  async function atualizarTarefa(id, dados) {
-    let atualizada
-
-    if (MODO_DEMONSTRACAO) {
-      const original = tarefas.value.find(
-        tarefa => Number(tarefa.id) === Number(id)
-      )
-
-      if (!original) throw new Error('Tarefa não encontrada.')
-
-      atualizada = {
-        ...original,
-        ...copiar(dados)
-      }
-
-      if (dados.status === 'concluido' && original.status !== 'concluido') {
-        atualizada.concluida_em = new Date().toISOString()
-      }
-
-      if (dados.status && dados.status !== 'concluido') {
-        atualizada.concluida_em = null
-      }
-    } else {
-      const response = await api.patch(`/tarefas/${id}/`, dados)
-      atualizada = response.data
-    }
-
-    const index = tarefas.value.findIndex(
-      tarefa => Number(tarefa.id) === Number(id)
-    )
-
-    if (index !== -1) {
-      tarefas.value[index] = atualizada
-    }
-
-    if (Number(tarefaAtual.value?.id) === Number(id)) {
-      tarefaAtual.value = copiar(atualizada)
-    }
-
-    return atualizada
-  }
-
-  async function excluirTarefa(id) {
-    if (!MODO_DEMONSTRACAO) {
-      await api.delete(`/tarefas/${id}/`)
-    }
-
-    tarefas.value = tarefas.value.filter(
-      tarefa => Number(tarefa.id) !== Number(id)
-    )
-
-    if (Number(tarefaAtual.value?.id) === Number(id)) {
-      tarefaAtual.value = null
-    }
-  }
-
-  async function adicionarComentario(tarefaId, texto, autor = null) {
-    if (MODO_DEMONSTRACAO) {
-      const tarefa = tarefas.value.find(
-        item => Number(item.id) === Number(tarefaId)
-      )
-
-      if (!tarefa) throw new Error('Tarefa não encontrada.')
-
-      const comentario = {
-        id: Date.now(),
-        autor: autor || { id: 1, nome: 'Usuário' },
-        texto,
-        criado_em: new Date().toISOString()
-      }
-
-      tarefa.comentarios.push(comentario)
-      await buscarTarefa(tarefaId)
-      return comentario
-    }
-
-    const { data } = await api.post('/comentarios/', {
-      tarefa: tarefaId,
-      texto
+  async function listarTarefas(id) {
+    const contexto = ++versao
+    projetoAtivo = Number(id)
+    projetoSelecionado.value = Number(id)
+    return executar(async () => {
+      const list = await listarPaginas('/api/tarefas/', { projeto: id })
+      const selected = list.filter(t => Number(t.projeto?.id ?? t.projeto) === Number(id))
+      if (contexto === versao) { todasTarefas.value = [...todasTarefas.value.filter(t => t.projeto !== Number(id)), ...selected.map(normalizar)]; projects.atualizarResumo(id, tarefas.value) }
+      return selected
     })
-
-    await buscarTarefa(tarefaId)
-    return data
   }
-
-  async function adicionarChecklist(tarefaId, texto) {
-    if (MODO_DEMONSTRACAO) {
-      const tarefa = tarefas.value.find(
-        item => Number(item.id) === Number(tarefaId)
-      )
-
-      if (!tarefa) throw new Error('Tarefa não encontrada.')
-
-      tarefa.checklist.push({
-        id: Date.now(),
-        texto,
-        concluido: false
-      })
-
-      await buscarTarefa(tarefaId)
-      return
+  async function listarTodas({ silencioso = false } = {}) {
+    const contexto = versao
+    const snapshot = revisao
+    const carregar = async () => {
+      const lista = await listarPaginas('/api/tarefas/')
+      if (contexto !== versao || snapshot !== revisao) return
+      todasTarefas.value = lista.filter(t => !!projects.buscarProjeto(t.projeto?.id ?? t.projeto)).map(normalizar)
+      projects.projetos.forEach(p => projects.atualizarResumo(p.id, todasTarefas.value.filter(t => t.projeto === Number(p.id))))
+      const atual = tarefaAtual.value && todasTarefas.value.find(t => t.id === tarefaAtual.value.id)
+      if (tarefaAtual.value && !atual) tarefaAtual.value = null
+      else if (atual) tarefaAtual.value = { ...tarefaAtual.value, ...atual, comentarios: tarefaAtual.value.comentarios, checklist: tarefaAtual.value.checklist, materiais: tarefaAtual.value.materiais }
     }
-
-    await api.post(`/tarefas/${tarefaId}/checklist/`, { texto })
-    await buscarTarefa(tarefaId)
+    return silencioso ? carregar() : executar(carregar)
   }
-
-  async function atualizarChecklist(tarefaId, itemId, concluido) {
-    if (MODO_DEMONSTRACAO) {
-      const tarefa = tarefas.value.find(
-        item => Number(item.id) === Number(tarefaId)
-      )
-
-      const item = tarefa?.checklist.find(
-        item => Number(item.id) === Number(itemId)
-      )
-
-      if (!item) throw new Error('Item não encontrado.')
-
-      item.concluido = concluido
-    } else {
-      await api.patch(
-        `/tarefas/${tarefaId}/checklist/${itemId}/`,
-        { concluido }
-      )
-    }
-
-    await buscarTarefa(tarefaId)
+  async function buscarTarefa(id) {
+    const contexto = versao
+    const detalhe = ++detalheVersao
+    return executar(async () => {
+      const { data } = await api.get('/api/tarefas/' + id + '/')
+      if (contexto !== versao || detalhe !== detalheVersao) return null
+      if (!projects.buscarProjeto(data.projeto)) await projects.carregarProjeto(data.projeto)
+      const [comments, checklist, materials] = await Promise.all([
+        listarPaginas('/api/comentarios/', { tarefa: id }), listarPaginas('/api/checklists/', { tarefa: id }), listarPaginas('/api/materiais-apoio/', { projeto: data.projeto }),
+      ])
+      if (contexto !== versao || detalhe !== detalheVersao) return null
+      const t = upsert(data)
+      tarefaAtual.value = { ...t,
+        comentarios: comments.filter(c => Number(c.tarefa) === Number(id)).map(c => ({ ...c, texto: c.conteudo, autor: projects.pessoa(c.autor) })),
+        checklist: checklist.filter(c => Number(c.tarefa) === Number(id)).map(c => ({ ...c, texto: c.descricao })),
+        materiais: materials.filter(m => Number(m.projeto) === Number(data.projeto)),
+      }
+      return tarefaAtual.value
+    })
   }
-
-  return {
-    tarefas,
-    tarefaAtual,
-    loading,
-    error,
-    listarTarefas,
-    buscarTarefa,
-    criarTarefa,
-    atualizarTarefa,
-    excluirTarefa,
-    adicionarComentario,
-    adicionarChecklist,
-    atualizarChecklist
+  async function criarTarefa(dados) {
+    return executar(async () => {
+      await projects.garantirAdministrador(dados.projeto)
+      const envio = payload(dados)
+      const { data } = await api.post('/api/tarefas/', envio)
+      const criada = upsert(data)
+      // Compatibilidade com o servidor atual, que substitui o responsável pelo criador no POST.
+      if ('responsavel' in envio && data.responsavel !== envio.responsavel) {
+        try {
+          const resposta = await api.patch('/api/tarefas/' + data.id + '/', { responsavel: envio.responsavel })
+          return upsert(resposta.data)
+        } catch (err) {
+          return { ...criada, aviso: 'A tarefa foi criada, mas o responsável não foi alterado: ' + mensagemErro(err) }
+        }
+      }
+      return criada
+    })
   }
+  async function atualizarTarefa(id, dados) { return executar(async () => { exigirEdicao(id); const { data } = await api.patch('/api/tarefas/' + id + '/', payload(dados)); return upsert(data) }) }
+  function exigirEdicao(id) {
+    const tarefa = todasTarefas.value.find(t => Number(t.id) === Number(id))
+    if (!podeEditarTarefa(tarefa, auth.usuario?.id, projects.podeAdministrar(tarefa?.projeto))) throw new Error('Você não pode alterar esta tarefa.')
+  }
+  async function excluirTarefa(id) {
+    return executar(async () => {
+      exigirEdicao(id)
+      await api.delete('/api/tarefas/' + id + '/')
+      revisao++
+      const projeto = todasTarefas.value.find(t => Number(t.id) === Number(id))?.projeto
+      todasTarefas.value = todasTarefas.value.filter(t => Number(t.id) !== Number(id))
+      if (tarefaAtual.value?.id === Number(id)) tarefaAtual.value = null
+      projects.atualizarResumo(projeto, todasTarefas.value.filter(t => t.projeto === projeto))
+    })
+  }
+  async function recurso(url, method, data, taskId) {
+    await executar(() => api.request({ url, method, data }))
+    await buscarTarefa(taskId)
+  }
+  const adicionarComentario = (id, texto) => recurso('/api/comentarios/', 'post', { tarefa: id, conteudo: texto, autor: auth.usuario.id }, id)
+  const adicionarChecklist = (id, texto) => recurso('/api/checklists/', 'post', { tarefa: id, descricao: texto, concluido: false, ordem: tarefaAtual.value?.checklist.length || 0 }, id)
+  const atualizarChecklist = (id, itemId, concluido) => recurso('/api/checklists/' + itemId + '/', 'patch', { concluido }, id)
+  const removerChecklist = (id, itemId) => recurso('/api/checklists/' + itemId + '/', 'delete', undefined, id)
+  const adicionarMaterial = (id, dados) => recurso('/api/materiais-apoio/', 'post', { ...dados, projeto: tarefaAtual.value.projeto, criador: auth.usuario.id }, id)
+  const removerMaterial = (id, itemId) => recurso('/api/materiais-apoio/' + itemId + '/', 'delete', undefined, id)
+  return { todasTarefas, listarTodas, tarefas, tarefaAtual, loading, error, limparQuadro, listarTarefas, buscarTarefa, criarTarefa, atualizarTarefa, excluirTarefa, adicionarComentario, adicionarChecklist, atualizarChecklist, removerChecklist, adicionarMaterial, removerMaterial }
 })

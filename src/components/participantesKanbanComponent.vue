@@ -49,7 +49,7 @@ defineEmits(['adicionar'])
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 .painel-participantes {
-  background-color: #ffffff;
+  background-color: var(--theme-bg-ffffff, #ffffff);
   border-radius: 14px;
   padding: 18px 14px 16px;
   font-family: 'Poppins', sans-serif;
@@ -64,7 +64,7 @@ defineEmits(['adicionar'])
   text-align: left;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--theme-text-000000, #000000);
   padding-left: 2px;
 }
 
@@ -87,7 +87,7 @@ defineEmits(['adicionar'])
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 1px solid #718a77;
+  border: 1px solid var(--theme-border-718a77, #718a77);
   background-color: transparent;
   overflow: hidden;
   flex-shrink: 0;
@@ -105,7 +105,7 @@ defineEmits(['adicionar'])
 .nome-participante {
   font-size: 0.68rem;
   font-weight: 500;
-  color: #2b4532;
+  color: var(--theme-text-2b4532, #2b4532);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -123,8 +123,8 @@ defineEmits(['adicionar'])
   justify-content: center;
   gap: 4px;
   background-color: transparent;
-  color: #3b5742;
-  border: 1px solid #718a77;
+  color: var(--theme-text-3b5742, #3b5742);
+  border: 1px solid var(--theme-border-718a77, #718a77);
   border-radius: 999px;
   padding: 2px 10px;
   font-family: 'Poppins', sans-serif;

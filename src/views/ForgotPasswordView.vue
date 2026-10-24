@@ -135,6 +135,6 @@ main{
 
 .back-link:hover {
   margin-top: 20px;
-  color: #4E7855;
+  color: var(--theme-text-4e7855, #4E7855);
 }
 </style>

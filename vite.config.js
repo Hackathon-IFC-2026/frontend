@@ -10,6 +10,11 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  server: {
+    fs: {
+      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/src/backend/**', '**/backend-integration/**', '**/.backend-backups/**'],
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

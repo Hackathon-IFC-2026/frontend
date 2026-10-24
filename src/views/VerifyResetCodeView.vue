@@ -188,7 +188,7 @@ main{
   padding: 0;
   border: 0;
   background: transparent;
-  color: #315e3b;
+  color: var(--theme-text-315e3b, #315e3b);
   cursor: pointer;
   font: inherit;
   font-size: 14px;
@@ -206,7 +206,7 @@ main{
 }
 
 .back-link:hover {
-  color: #4E7855;
+  color: var(--theme-text-4e7855, #4E7855);
 }
 
 .verification-code {
@@ -223,7 +223,7 @@ main{
   height: 60px;
   padding: 0;
   box-sizing: border-box;
-  border: 1px solid #a0aaa1;
+  border: 1px solid var(--theme-border-a0aaa1, #a0aaa1);
   border-radius: 22px;
   background: transparent;
   color: #fff9e3;
@@ -235,7 +235,7 @@ main{
 }
 
 .verification-code input:focus {
-  border-color: #fff9e3;
+  border-color: var(--theme-border-fff9e3, #fff9e3);
 }
 
 

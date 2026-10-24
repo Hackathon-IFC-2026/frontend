@@ -1,505 +1,714 @@
+<script setup>
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { gsap } from 'gsap'
+import { useSidebarStore } from '@/stores/sidebar'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificacoesStore } from '@/stores/notificacoes'
+
+const sidebarStore = useSidebarStore()
+const authStore = useAuthStore()
+const notificacoes = useNotificacoesStore()
+const route = useRoute()
+const router = useRouter()
+const panel = ref(null)
+const nav = ref(null)
+const indicator = ref(null)
+const opener = ref(null)
+const mobile = ref(window.matchMedia('(max-width: 767px)').matches)
+const compacta = computed(() => sidebarStore.isCollapsed && !mobile.value)
+const nomeUsuario = computed(
+  () => authStore.usuario?.nome || authStore.usuario?.name || 'Minha conta',
+)
+const iniciais = computed(() =>
+  nomeUsuario.value
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((n) => n.charAt(0))
+    .join('')
+    .toUpperCase(),
+)
+const itens = [
+  { nome: 'Dashboard', icon: 'dashboard', to: '/dashboard', key: 'dashboard' },
+  { nome: 'Projetos', icon: 'folder', to: '/projects', key: 'projetos' },
+  { nome: 'Minhas Tarefas', icon: 'task_alt', to: '/minhas-tarefas', key: 'minhas-tarefas' },
+  { nome: 'Calendário', icon: 'calendar_month', to: '/calendario', key: 'calendario' },
+  { nome: 'Notificações', icon: 'notifications', to: '/notificacoes', key: 'notificacoes' },
+]
+const ativa = (item) =>
+  item.key === route.name || (item.key === 'projetos' && route.name === 'projeto-detalhes')
+const tituloPagina = computed(
+  () =>
+    itens.find(ativa)?.nome ||
+    { perfil: 'Meu perfil', configuracoes: 'Configurações' }[route.name] ||
+    'Kando',
+)
+let context, media, animation, mobileAnimation, observer
+let bodyOverflow = null
+const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+function unlockBody() {
+  if (bodyOverflow !== null) {
+    document.body.style.overflow = bodyOverflow
+    bodyOverflow = null
+  }
+}
+function setIndicator(animate = true) {
+  const selected = nav.value?.querySelector('.menu-item.is-active')
+  if (!indicator.value) return
+  if (!selected) {
+    gsap.set(indicator.value, { opacity: 0 })
+    return
+  }
+  const target = {
+    y: selected.offsetTop,
+    height: selected.offsetHeight,
+    opacity: 1,
+    duration: animate && !reduce() ? 0.28 : 0,
+    ease: 'power2.out',
+    overwrite: true,
+  }
+  context?.add(() => gsap.to(indicator.value, target))
+}
+function animateWidth(animate = true) {
+  if (!panel.value) return
+  animation?.kill()
+  const layout = panel.value.closest('.app-layout')
+  context.add(() => {
+    animation = gsap
+      .timeline({ defaults: { ease: 'power2.inOut', duration: animate && !reduce() ? 0.3 : 0 } })
+      .to(layout, { '--sidebar-width': sidebarStore.isCollapsed ? '76px' : '260px' }, 0)
+      .to(
+        panel.value.querySelectorAll('.nav-copy, .brand-copy, .group-label'),
+        { opacity: compacta.value ? 0 : 1 },
+        0,
+      )
+  })
+}
+async function animateMobile(open) {
+  mobileAnimation?.kill()
+  if (!mobile.value) {
+    unlockBody()
+    gsap.set(panel.value, { clearProps: 'transform' })
+    return
+  }
+  if (open) {
+    if (bodyOverflow === null) {
+      bodyOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+    }
+    await nextTick()
+  }
+  context.add(() => {
+    mobileAnimation = gsap.to(panel.value, {
+      x: 0,
+      xPercent: open ? 0 : -105,
+      duration: reduce() ? 0 : 0.3,
+      ease: 'power2.inOut',
+      overwrite: true,
+      onComplete: () => {
+        if (open) panel.value?.querySelector('button, a')?.focus()
+        else {
+          unlockBody()
+          opener.value?.focus()
+        }
+      },
+    })
+  })
+}
+function handleKey(event) {
+  if (!mobile.value || !sidebarStore.mobileOpen) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    sidebarStore.closeMobile()
+    return
+  }
+  if (event.key !== 'Tab') return
+  const focusable = [...panel.value.querySelectorAll('a[href], button:not([disabled])')]
+  const first = focusable[0],
+    last = focusable.at(-1)
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last?.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first?.focus()
+  }
+}
+function resize() {
+  mobile.value = window.matchMedia('(max-width: 767px)').matches
+  sidebarStore.closeMobile()
+  animateWidth(false)
+  animateMobile(false)
+  setIndicator(false)
+}
+watch(
+  () => sidebarStore.isCollapsed,
+  () => {
+    animateWidth()
+    nextTick(() => setIndicator(false))
+  },
+)
+watch(
+  () => sidebarStore.mobileOpen,
+  (value) => {
+    if (context) animateMobile(value)
+  },
+)
+watch(
+  () => route.fullPath,
+  () => {
+    sidebarStore.closeMobile()
+    nextTick(() => setIndicator())
+  },
+)
+async function handleLogout() {
+  sidebarStore.closeMobile()
+  authStore.logout()
+  await router.push('/login')
+}
+onMounted(() => {
+  context = gsap.context(() => {}, panel.value)
+  media = window.matchMedia('(max-width: 767px)')
+  media.addEventListener('change', resize)
+  document.addEventListener('keydown', handleKey)
+  animateWidth(false)
+  if (mobile.value) gsap.set(panel.value, { x: 0, xPercent: -105 })
+  observer = new ResizeObserver(() => setIndicator(false))
+  observer.observe(nav.value)
+  setIndicator(false)
+})
+onUnmounted(() => {
+  animation?.kill()
+  mobileAnimation?.kill()
+  context?.revert()
+  observer?.disconnect()
+  media?.removeEventListener('change', resize)
+  document.removeEventListener('keydown', handleKey)
+  unlockBody()
+})
+</script>
+
 <template>
   <div class="sidebar-wrapper">
-    <aside class="sidebar" :class="{ collapsed: sidebarStore.isCollapsed }">
-      <button class="toggle-sidebar" @click="sidebarStore.toggle()"
-        :title="sidebarStore.isCollapsed ? 'Expandir menu' : 'Recolher menu'">
-        <span class="material-symbols-outlined">{{ sidebarStore.isCollapsed ? "chevron_right" : "chevron_left" }}</span>
+    <header class="mobile-topbar">
+      <button
+        ref="opener"
+        class="icon-button mobile-trigger"
+        aria-label="Abrir menu de navegação"
+        aria-controls="kando-sidebar"
+        :aria-expanded="sidebarStore.mobileOpen"
+        @click="sidebarStore.mobileOpen = true"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
       </button>
-      <div class="sidebar-top">
-        <router-link to="/projetos" class="sidebar-logo" title="Ir para Home / Projetos">
-          <h2 v-if="!sidebarStore.isCollapsed">Kando</h2>
-          <div v-else class="logo-mini">K</div>
-        </router-link>
-
-        <nav class="sidebar-menu">
-          <router-link to="/projetos" class="menu-item">
-            <span class="material-symbols-outlined">folder_copy</span>
-            <span v-if="!sidebarStore.isCollapsed">Projetos</span>
-          </router-link>
-
-          <router-link to="/minhas-tarefas" class="menu-item">
-            <span class="material-symbols-outlined">check_box</span>
-            <span v-if="!sidebarStore.isCollapsed">Minhas tarefas</span>
-          </router-link>
-
-          <router-link to="/calendario" class="menu-item">
-            <span class="material-symbols-outlined">calendar_month</span>
-            <span v-if="!sidebarStore.isCollapsed">Calendário</span>
-          </router-link>
-
-          <router-link to="/notificacoes" class="menu-item">
-            <span class="material-symbols-outlined menu-icon">notifications</span>
-            <span v-if="!sidebarCollapsed">Notificações</span>
-          </router-link>
-
-        </nav>
+      <span>{{ tituloPagina }}</span>
+      <RouterLink to="/perfil" class="mobile-avatar" aria-label="Meu perfil"
+        ><img v-if="authStore.usuario?.foto" :src="authStore.usuario.foto" alt="" /><span v-else>{{
+          iniciais
+        }}</span></RouterLink
+      >
+    </header>
+    <button
+      v-if="mobile && sidebarStore.mobileOpen"
+      class="sidebar-backdrop"
+      aria-label="Fechar menu de navegação"
+      tabindex="-1"
+      @click="sidebarStore.closeMobile"
+    />
+    <aside
+      id="kando-sidebar"
+      ref="panel"
+      class="sidebar"
+      :class="{ compacta }"
+      :role="mobile ? 'dialog' : undefined"
+      :aria-modal="mobile && sidebarStore.mobileOpen ? 'true' : undefined"
+      aria-label="Navegação do Kando"
+      :inert="mobile && !sidebarStore.mobileOpen"
+    >
+      <div class="sidebar-header">
+        <RouterLink to="/dashboard" class="sidebar-logo" aria-label="Kando — Dashboard">
+          <span class="brand-mark" aria-hidden="true">k<span></span></span>
+          <span class="brand-copy"><strong>Kando</strong><small>you can do this.</small></span>
+        </RouterLink>
+        <button
+          class="icon-button toggle-sidebar"
+          :aria-label="mobile ? 'Fechar menu' : compacta ? 'Expandir sidebar' : 'Recolher sidebar'"
+          :aria-expanded="mobile ? sidebarStore.mobileOpen : !compacta"
+          aria-controls="kando-sidebar"
+          @click="mobile ? sidebarStore.closeMobile() : sidebarStore.toggle()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            mobile ? 'close' : compacta ? 'left_panel_open' : 'left_panel_close'
+          }}</span>
+        </button>
       </div>
+      <nav ref="nav" class="sidebar-menu" aria-label="Principal">
+        <span ref="indicator" class="active-indicator" aria-hidden="true"></span>
+        <RouterLink
+          v-for="item in itens"
+          :key="item.key"
+          :to="item.to"
+          class="menu-item"
+          :class="{ 'is-active': ativa(item) }"
+          :aria-current="ativa(item) ? 'page' : undefined"
+          :aria-label="item.nome"
+        >
+          <span class="icon-slot"
+            ><span class="material-symbols-outlined" aria-hidden="true">{{ item.icon }}</span
+            ><span
+              v-if="item.key === 'notificacoes' && notificacoes.naoLidasCount && compacta"
+              class="notification-dot"
+              aria-hidden="true"
+            ></span
+          ></span>
+          <span class="nav-copy" :aria-hidden="compacta">{{ item.nome }}</span>
+          <span
+            v-if="item.key === 'notificacoes' && notificacoes.naoLidasCount"
+            class="notification-badge"
+            :class="{ 'compact-count': compacta }"
+            :aria-label="notificacoes.naoLidasCount + ' não lidas'"
+            >{{ notificacoes.naoLidasCount > 99 ? '99+' : notificacoes.naoLidasCount }}</span
+          >
+          <span v-if="compacta" class="sidebar-tooltip" role="tooltip"
+            >{{ item.nome
+            }}{{
+              item.key === 'notificacoes' && notificacoes.naoLidasCount
+                ? ' · ' + notificacoes.naoLidasCount + ' não lidas'
+                : ''
+            }}</span
+          >
+        </RouterLink>
+      </nav>
       <div class="sidebar-footer">
-        <router-link to="/perfil" class="menu-item">
-          <span class="material-symbols-outlined menu-icon">person</span>
-          <span v-if="!sidebarStore.isCollapsed">{{ nomeUsuario }}</span>
-        </router-link>
-        <router-link to="/configuracoes" class="menu-item">
-          <span class="material-symbols-outlined menu-icon">settings</span>
-          <span v-if="!sidebarStore.isCollapsed">Configurações</span>
-        </router-link>
-        <button @click="handleLogout" class="footer-item botao-logout">
-          <span class="material-symbols-outlined menu-icon">logout</span>
-          <span v-if="!sidebarStore.isCollapsed">Sair</span>
+        <RouterLink
+          to="/configuracoes"
+          class="menu-item utility"
+          :class="{ 'is-active': route.name === 'configuracoes' }"
+          aria-label="Configurações"
+          ><span class="icon-slot material-symbols-outlined" aria-hidden="true">settings</span
+          ><span class="nav-copy" :aria-hidden="compacta">Configurações</span
+          ><span v-if="compacta" class="sidebar-tooltip" role="tooltip"
+            >Configurações</span
+          ></RouterLink
+        >
+        <div class="account-divider"></div>
+        <RouterLink
+          to="/perfil"
+          class="account-link"
+          :class="{ 'is-active': route.name === 'perfil' }"
+          :aria-label="'Perfil de ' + nomeUsuario"
+        >
+          <span class="user-avatar"
+            ><img v-if="authStore.usuario?.foto" :src="authStore.usuario.foto" alt="" /><span
+              v-else
+              >{{ iniciais }}</span
+            ></span
+          >
+          <span class="nav-copy account-copy" :aria-hidden="compacta"
+            ><strong>{{ nomeUsuario }}</strong
+            ><small>{{ authStore.usuario?.email }}</small></span
+          >
+          <span v-if="compacta" class="sidebar-tooltip" role="tooltip">Meu perfil</span>
+        </RouterLink>
+        <button class="menu-item logout" aria-label="Sair da conta" @click="handleLogout">
+          <span class="icon-slot material-symbols-outlined" aria-hidden="true">logout</span
+          ><span class="nav-copy" :aria-hidden="compacta">Sair da conta</span
+          ><span v-if="compacta" class="sidebar-tooltip" role="tooltip">Sair da conta</span>
         </button>
       </div>
     </aside>
-
-    <nav class="mobile-nav">
-      <router-link to="/projetos" class="mobile-item">
-        <span class="material-symbols-outlined">folder_copy</span>
-      </router-link>
-
-      <router-link
-        to="/minhas-tarefas"
-        class="mobile-item"
-        aria-label="Minhas tarefas"
-        title="Minhas tarefas"
-      >
-        <span class="material-symbols-outlined">check_box</span>
-      </router-link>
-
-      <router-link to="/calendario" class="mobile-item">
-        <span class="material-symbols-outlined">calendar_month</span>
-      </router-link>
-
-      <router-link to="/configuracoes" class="mobile-item">
-        <span class="material-symbols-outlined">settings</span>
-      </router-link>
-
-      <button @click="handleLogout" class="mobile-item botao-logout">
-        <span class="material-symbols-outlined menu-icon">logout</span>
-      </button>
-    </nav>
   </div>
 </template>
 
-<script setup>
-import { useAuthStore } from "@/stores/auth.js";
-import { useSidebarStore } from "@/stores/sidebar.js";
-import { useRouter } from "vue-router";
-import { computed } from 'vue'
-
-const authStore = useAuthStore();
-const sidebarStore = useSidebarStore();
-const router = useRouter();
-
-const nomeUsuario = computed(() => {
-  return authStore.usuario?.nome || authStore.usuario?.name || 'Usuário'
-})
-
-const handleLogout = () => {
-  authStore.logout();
-  router.push("/login");
-};
-</script>
-
 <style scoped>
-.sidebar-wrapper {
-  position: relative;
-}
-
 .sidebar {
   position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 235px;
-  height: 100vh;
-  background-color: #1A3721;
-  padding: 20px 12px 15px;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width, 260px);
+  height: 100dvh;
+  padding: 24px 14px 16px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  box-sizing: border-box;
-  z-index: 1000;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.04);
-  transition: width 0.25s ease, padding 0.25s ease;
+  background: var(--sidebar-surface);
+  border-right: 1px solid var(--sidebar-border);
+  color: var(--sidebar-ink);
+  z-index: 1050;
+  font-family: Poppins, sans-serif;
 }
 
-.sidebar.collapsed {
-  width: 70px;
-  padding: 20px 9px 15px;
-}
-
-.toggle-sidebar {
-  position: absolute;
-  right: -11px;
-  top: 35px;
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 50%;
-  color: #fff9e3;
-  background-color: #4E7855;
+.sidebar-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(255, 149, 0, 0.35);
-  transition: 0.2s ease;
+  height: 56px;
+  gap: 8px;
+  margin-bottom: 34px;
 }
-
-.toggle-sidebar .material-symbols-outlined {
-  font-size: 15px;
-}
-
-.sidebar-top {
-  width: 100%;
-}
-
 .sidebar-logo {
-  height: 55px;
-  margin-bottom: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.sidebar-logo:hover {
-  opacity: 0.85;
-}
-
-.sidebar-logo h2 {
-  color: #fff9e3;
-  font-weight: 300;
-  font-size: 2rem;
-  line-height: 1;
-  margin: 0;
-  letter-spacing: 1px;
-}
-
-.logo-mini {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  color: #fff9e3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-}
-
-.sidebar-menu {
-  margin-top: 2vw;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.menu-item {
   display: flex;
   align-items: center;
   gap: 11px;
-  min-height: 36px;
-  padding: 11px 11px;
-  box-sizing: border-box;
-  color: #ded9c7;
+  min-width: 0;
   text-decoration: none;
-  font-family: "Poppins", sans-serif;
-  font-size: 0.73rem;
-  font-weight: 550;
-  border-radius: 11px;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  color: inherit;
+  padding-left: 9px;
+  flex: 1;
 }
-
-.menu-icon {
-  width: 18px;
-  min-width: 18px;
-  font-size: 20px;
-  text-align: center;
+.brand-mark {
+  flex-shrink: 0;
+  position: relative;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  letter-spacing: -3px;
+  width: 28px;
 }
-
-.menu-item:hover:not(.router-link-active) {
-  background-color: #4E7855;
-  color: #fff9e3;
+.brand-mark > span {
+  position: absolute;
+  top: 0;
+  right: 1px;
+  width: 7px;
+  height: 10px;
+  background: #87a98e;
+  border-radius: 7px 1px 7px 1px;
+  transform: rotate(12deg);
 }
-
-.sidebar .menu-item.router-link-active,
-.sidebar .menu-item.router-link-exact-active {
-  background-color: #4E7855;
-  color: #fff9e3;
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.brand-copy strong {
+  font-size: 23px;
   font-weight: 600;
-  border-left: 4px solid #fff9e3;
+  line-height: 1.3;
+  letter-spacing: -0.6px;
 }
-
-.sidebar.collapsed .menu-item {
-  justify-content: center;
-  padding: 0;
-  gap: 0;
+.brand-copy small {
+  color: var(--sidebar-muted);
+  font-size: 10px;
+  margin-top: 3px;
 }
-
-.sidebar.collapsed .menu-icon {
-  width: 20px;
+.icon-button {
+  width: 30px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  color: var(--sidebar-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.icon-button:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-ink);
+}
+.icon-button .material-symbols-outlined {
   font-size: 21px;
 }
-
-.sidebar-footer {
+.group-label {
+  color: var(--sidebar-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.35px;
+  padding: 0 12px;
+  margin-bottom: 12px;
+  height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar-menu {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  border-top: 1px solid #f3f4f6;
-  padding-top: 6px;
+  gap: 6px;
 }
-
-.footer-item {
+.menu-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  min-height: 36px;
-  padding: 0 11px;
-  color: #9ca3af;
+  gap: 12px;
+  height: 46px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
   text-decoration: none;
-  font-family: "Poppins", sans-serif;
-  font-size: 0.73rem;
-  font-weight: 550;
-  border-radius: 11px;
   background: transparent;
-  border: none;
-  width: 100%;
+  color: var(--sidebar-muted);
   cursor: pointer;
-  text-align: left;
-  box-sizing: border-box;
-  transition: 0.2s ease;
+  font:
+    400 12px Poppins,
+    sans-serif;
+  white-space: nowrap;
+  width: 100%;
+  transition:
+    color 0.18s,
+    background 0.18s;
 }
-
-.footer-item:hover {
-  color: #000000;
-  background-color: #f9fafb;
+.menu-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-ink);
 }
-
-.botao-logout:hover {
-  color: #dc2626;
-  background-color: #fff1f1;
+.menu-item:active {
+  transform: scale(0.98);
 }
-
-.sidebar.collapsed .footer-item {
-  justify-content: center;
+.menu-item.is-active {
+  color: var(--sidebar-ink);
+  font-weight: 600;
+}
+.menu-item.is-active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1;
+}
+.active-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  background: var(--sidebar-hover);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.icon-slot {
+  width: 24px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.material-symbols-outlined {
+  font-size: 23px;
+}
+.nav-copy {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notification-badge {
+  font-size: 10px;
+  font-weight: 500;
+  background: #e6ebe7;
+  color: #435849;
+  padding: 1px 6px;
+  border-radius: 7px;
+}
+.compact-count {
+  position: absolute;
+  right: 0;
+  top: 1px;
+  padding: 0 3px;
+  font-size: 8px;
+}
+.notification-dot {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #7a9581;
+}
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 30px;
+}
+.utility.is-active {
+  background: var(--sidebar-hover);
+}
+.account-divider {
+  height: 1px;
+  background: var(--sidebar-border);
+  margin: 14px 4px;
+}
+.account-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 7px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.18s;
+  min-width: 0;
+}
+.account-link:hover,
+.account-link.is-active {
+  background: var(--sidebar-hover);
+}
+.user-avatar,
+.mobile-avatar {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  background: #e8ede5;
+  color: #4c6652;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+}
+.user-avatar img,
+.mobile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.account-copy {
+  display: flex;
+  flex-direction: column;
+}
+.account-copy strong {
+  font-size: 11px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-copy small {
+  font-size: 9px;
+  color: var(--sidebar-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+}
+.logout {
+  height: 38px;
+  margin-top: 9px;
+  font-size: 11px;
+}
+.logout:hover {
+  color: #a35c5c;
+}
+.brand-copy,
+.nav-copy {
+  max-width: 190px;
+  transition: max-width 0.3s ease;
+}
+.compacta .brand-copy,
+.compacta .nav-copy {
+  max-width: 0;
   padding: 0;
+  margin-right: 0;
+}
+.compacta .group-label {
+  opacity: 0;
+}
+.compacta .sidebar-header {
+  position: relative;
+  margin-bottom: 34px;
+}
+.compacta .sidebar-logo {
+  padding-left: 10px;
+}
+.compacta .toggle-sidebar {
+  position: absolute;
+  top: 51px;
+  left: 9px;
+  width: 30px;
+  height: 26px;
+}
+.compacta .menu-item {
   gap: 0;
 }
-
-.mobile-nav {
+.compacta .account-link {
+  gap: 0;
+  justify-content: center;
+  padding: 9px 0;
+}
+.sidebar-tooltip {
+  pointer-events: none;
+  position: absolute;
+  left: calc(100% + 13px);
+  top: 50%;
+  transform: translate(4px, -50%);
+  opacity: 0;
+  padding: 7px 11px;
+  background: var(--sidebar-ink);
+  color: var(--sidebar-surface);
+  font-size: 11px;
+  font-weight: 400;
+  border-radius: 8px;
+  box-shadow: 0 3px 12px #00000010;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  z-index: 1200;
+  white-space: nowrap;
+}
+.menu-item:hover .sidebar-tooltip,
+.menu-item:focus .sidebar-tooltip,
+.account-link:hover .sidebar-tooltip,
+.account-link:focus .sidebar-tooltip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.sidebar :is(button, a):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+.mobile-topbar,
+.sidebar-backdrop {
   display: none;
 }
-
-.mobile-overlay {
-  display: none;
-}
-
-.mobile-sidebar {
-  display: none;
-}
-
 @media (max-width: 767px) {
-  .sidebar {
-    display: none;
-  }
-
-  .mobile-nav {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 40px);
-    max-width: 450px;
-    height: 60px;
-    background-color: #1A3721;
-    border-radius: 20px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 0 8px;
-    z-index: 999;
-  }
-
-  .mobile-item {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    color: #fff9e3;
-    font-size: 1.1rem;
-    text-decoration: none;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    transition: all 0.25s ease;
-  }
-
-  .mobile-item .material-symbols-outlined {
-    font-size: 24px;
-  }
-
-  .mobile-nav .mobile-item.router-link-active,
-  .mobile-nav .mobile-item.router-link-exact-active {
-    background-color: #4E7855;
-    color: #fff9e3;
-    border-radius: 12px;
-  }
-
-  .mobile-nav .mobile-item.router-link-active .material-symbols-outlined,
-  .mobile-nav .mobile-item.router-link-exact-active .material-symbols-outlined {
-    font-variation-settings: 'FILL' 1;
-  }
-
-  .mobile-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: 1100;
-    backdrop-filter: blur(2px);
-  }
-
-  .mobile-sidebar {
-    display: flex;
-    position: fixed;
+  .sidebar-wrapper {
+    position: sticky;
     top: 0;
-    right: 0;
-    width: min(310px, 82vw);
-    height: 100vh;
-    background-color: #ffffff;
-    z-index: 1200;
-    flex-direction: column;
-    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.12);
+    z-index: 1050;
   }
-
-  .mobile-sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 25px 20px;
-    border-bottom: 1px solid #f1f1f1;
-  }
-
-  .mobile-sidebar-header h2 {
-    margin: 0;
-    color: #000000;
-    font-family: "Imbue", serif;
-    font-size: 2rem;
-    font-weight: 300;
-    line-height: 1;
-  }
-
-  .mobile-sidebar-header p {
-    margin: 5px 0 0;
-    color: #9ca3af;
-    font-family: "Poppins", sans-serif;
-    font-size: 0.55rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .close-mobile-menu {
-    width: 38px;
-    height: 38px;
-    border: none;
-    border-radius: 50%;
-    background-color: #f5f5f5;
-    color: #555555;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .close-mobile-menu .material-symbols-outlined {
-    font-size: 22px;
-  }
-
-  .mobile-sidebar-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 20px 14px;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  .mobile-sidebar-item {
+  .mobile-topbar {
     display: flex;
     align-items: center;
     gap: 14px;
-    width: 100%;
-    min-height: 52px;
-    padding: 0 14px;
-    box-sizing: border-box;
-    border-radius: 12px;
-    border: none;
-    background: transparent;
-    color: #6b7280;
-    text-decoration: none;
-    font-family: "Poppins", sans-serif;
-    font-size: 0.85rem;
+    position: relative;
+    height: 62px;
+    padding: 0 18px;
+    z-index: 100;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 13px;
     font-weight: 500;
-    cursor: pointer;
-    transition: 0.2s ease;
   }
-
-  .mobile-sidebar-item .material-symbols-outlined {
-    font-size: 23px;
-    width: 24px;
+  .mobile-topbar > span {
+    flex: 1;
   }
-
-  .mobile-sidebar-item:hover {
-    background-color: #f5f5f7;
-    color: #000000;
+  .mobile-avatar {
+    text-decoration: none;
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
   }
-
-  .mobile-sidebar-item.router-link-active {
-    background-color: #f5f5f7;
-    color: #000000;
-    border-left: 4px solid #4E7855;
+  .mobile-trigger {
+    color: var(--color-text);
   }
-
-  .mobile-sidebar-footer {
-    flex-shrink: 0;
-    border-top: 1px solid #f1f1f1;
-    padding: 12px 14px 20px;
-    background-color: #ffffff;
+  .sidebar {
+    width: min(280px, calc(100vw - 32px));
+    padding-top: 20px;
+    box-shadow: 8px 0 35px #0000000d;
+    transform: translateX(-105%);
   }
-
-  .logout-mobile {
-    color: #dc2626;
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    border: 0;
+    background: #14211c66;
+    z-index: 1040;
+    cursor: default;
   }
-
-  .logout-mobile:hover {
-    background-color: #fff1f1;
-    color: #dc2626;
-  }
-
-  .slide-enter-active,
-  .slide-leave-active {
-    transition: transform 0.25s ease;
-  }
-
-  .slide-enter-from,
-  .slide-leave-to {
-    transform: translateX(100%);
-  }
-
-  .fade-enter-active,
-  .fade-leave-active {
-    transition: opacity 0.25s ease;
-  }
-
-  .fade-enter-from,
-  .fade-leave-to {
-    opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar * {
+    transition: none !important;
   }
 }
 </style>

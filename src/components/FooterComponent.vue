@@ -1,6 +1,5 @@
 <script setup>
 </script>
-
 <template>
   <footer class="footer">
     <div class="footer-content">
@@ -8,14 +7,10 @@
         <div class="logo">
           <span class="logo-text">Kando</span>
         </div>
-
       </div>
-
       <hr class="divider" />
-
       <div class="footer-bottom">
         <p class="copyright">©2026 Todos os direitos reservados</p>
-
         <div class="social-links">
           <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="social-btn"
             aria-label="Facebook">
@@ -45,15 +40,14 @@
     </div>
   </footer>
 </template>
-
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 .footer {
   width: 100%;
-  background-color: #ffffff;
-  color: #4E7855;
+  background-color: var(--theme-bg-ffffff, #ffffff);
+  color: var(--theme-text-4e7855, #4E7855);
   font-family: 'Poppins', sans-serif;
   padding: 32px 32px 24px;
   box-sizing: border-box;
@@ -82,14 +76,14 @@
 
 .logo-icon {
   font-size: 24px;
-  color: #4E7855;
+  color: var(--theme-text-4e7855, #4E7855);
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 .logo-text {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #4E7855;
+  color: var(--theme-text-4e7855, #4E7855);
   letter-spacing: -0.3px;
 }
 
@@ -101,7 +95,7 @@
 }
 
 .nav-item {
-  color: #4E7855;
+  color: var(--theme-text-4e7855, #4E7855);
   text-decoration: none;
   font-size: 1rem;
   font-weight: 600;
@@ -114,7 +108,7 @@
 
 .divider {
   border: none;
-  border-top: 1px solid #4E7855;
+  border-top: 1px solid var(--theme-border-4e7855, #4E7855);
   margin: 20px 0;
   width: 100%;
 }
@@ -130,7 +124,7 @@
 .copyright {
   font-size: 0.875rem;
   font-weight: 400;
-  color: #4E7855;
+  color: var(--theme-text-4e7855, #4E7855);
   margin: 0;
 }
 
@@ -144,8 +138,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #ffffff;
-  color: #4E7855;
+  background-color: var(--theme-bg-ffffff, #ffffff);
+  color: var(--theme-text-4e7855, #4E7855);
   display: flex;
   align-items: center;
   justify-content: center;
