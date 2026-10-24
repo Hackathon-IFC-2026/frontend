@@ -93,6 +93,7 @@ defineEmits([
   background: #f4f6f4;
   overflow: hidden;
   font-family: Poppins, sans-serif;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .kanban-coluna.arrastando-sobre {
@@ -162,6 +163,21 @@ defineEmits([
   color: #587461;
   font-size: 22px;
   cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.2s ease;
+  border-radius: 6px;
+}
+
+.btn-add-coluna:hover {
+  transform: rotate(90deg);
+  background: #e7efe8;
+  color: #315e3b;
+}
+
+.btn-add-coluna:active {
+  transform: rotate(90deg) scale(0.9);
 }
 
 .lista-cards {
@@ -189,6 +205,23 @@ defineEmits([
   color: #67836e;
   font: 11px Poppins, sans-serif;
   cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.adicionar-rodape:hover {
+  transform: translateY(-1px);
+  border-color: #9db69f;
+  background: #edf4ee;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kanban-coluna,
+  .btn-add-coluna,
+  .adicionar-rodape {
+    transition: none;
+  }
 }
 </style>
-

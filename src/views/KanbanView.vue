@@ -114,8 +114,8 @@ function onAdicionarParticipante(nome) {
 .kanban-pagina {
   width: 100%;
   max-width: 1600px;
-  margin: auto;
-  padding: 12px 16px;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
   box-sizing: border-box;
   font-family: Poppins, sans-serif;
   color: #24372a;
@@ -142,7 +142,7 @@ function onAdicionarParticipante(nome) {
 
 @media (max-width: 600px) {
   .kanban-pagina {
-    padding: 12px;
+    padding: 20px 16px 32px;
   }
   .kanban-area {
     grid-template-columns: 1fr;

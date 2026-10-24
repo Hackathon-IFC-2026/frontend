@@ -92,12 +92,50 @@ const estaAtrasada = computed(() => {
   background: white;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(22, 45, 28, 0.025);
-  transition: transform 0.15s, box-shadow 0.15s;
+  animation: card-entrada 0.3s ease both;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .task-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  border-color: #c9d9cc;
   box-shadow: 0 7px 20px rgba(22, 45, 28, 0.09);
+}
+
+.task-card:active {
+  transform: translateY(-1px) scale(0.995);
+}
+
+.task-card[draggable='true'] {
+  cursor: grab;
+}
+
+.task-card[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.task-card:nth-child(2) {
+  animation-delay: 35ms;
+}
+
+.task-card:nth-child(3) {
+  animation-delay: 70ms;
+}
+
+.task-card:nth-child(4) {
+  animation-delay: 105ms;
+}
+
+@keyframes card-entrada {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .card-topo,
@@ -154,6 +192,13 @@ const estaAtrasada = computed(() => {
 
 .tag-atrasada .material-symbols-outlined {
   font-size: 13px;
+  animation: alerta-pulso 1.8s ease-in-out infinite;
+}
+
+@keyframes alerta-pulso {
+  50% {
+    transform: scale(1.15);
+  }
 }
 
 .task-card h3 {
@@ -199,6 +244,12 @@ const estaAtrasada = computed(() => {
   color: #3d6a48;
   font-size: 10px;
   font-weight: 700;
+  transition: transform 0.18s ease;
+}
+
+.avatar:hover {
+  z-index: 1;
+  transform: translateY(-2px) scale(1.08);
 }
 
 .avatar.mais {
@@ -217,6 +268,23 @@ const estaAtrasada = computed(() => {
 
 .prazo .material-symbols-outlined {
   font-size: 14px;
+  transition: transform 0.18s ease;
+}
+
+.task-card:hover .prazo .material-symbols-outlined {
+  transform: scale(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-card,
+  .tag-atrasada .material-symbols-outlined {
+    animation: none;
+  }
+
+  .task-card,
+  .avatar,
+  .prazo .material-symbols-outlined {
+    transition: none;
+  }
 }
 </style>
-
