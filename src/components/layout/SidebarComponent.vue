@@ -35,6 +35,7 @@ const itens = [
   { nome: 'Minhas Tarefas', icon: 'task_alt', to: '/minhas-tarefas', key: 'minhas-tarefas' },
   { nome: 'Calendário', icon: 'calendar_month', to: '/calendario', key: 'calendario' },
   { nome: 'Notificações', icon: 'notifications', to: '/notificacoes', key: 'notificacoes' },
+  { nome: 'Kando Insights', icon: 'monitoring', to: '/insights', key: 'insights' },
 ]
 const ativa = (item) =>
   item.key === route.name || (item.key === 'projetos' && route.name === 'projeto-detalhes')

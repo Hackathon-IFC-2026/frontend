@@ -24,7 +24,7 @@
         <p v-if="notificacoesStore.error" role="alert">{{ notificacoesStore.error }}</p>
         <div class="card-container">
           <!-- Filtros de Abas -->
-          <label class="tipo-filtro">Tipo <select v-model="tipo"><option value="todos">Todos os tipos</option><option v-for="t in [...new Set(notificacoesStore.notificacoes.map(n => n.tipo))]" :key="t" :value="t">{{ ({ atribuicao: 'Atribuição', alteracao: 'Alteração', conclusao: 'Conclusão', prazo: 'Prazo próximo', atraso: 'Atraso', participacao: 'Participação', permissao: 'Permissão', remocao: 'Remoção' })[t] || t }}</option></select></label>
+          <label class="tipo-filtro">Tipo <select v-model="tipo"><option value="todos">Todos os tipos</option><option v-for="t in [...new Set(notificacoesStore.notificacoes.map(n => n.tipo))]" :key="t" :value="t">{{ ({ sobrecarga: 'Sobrecarga', redistribuicao: 'Redistribuição', atribuicao: 'Atribuição', alteracao: 'Alteração', conclusao: 'Conclusão', prazo: 'Prazo próximo', atraso: 'Atraso', participacao: 'Participação', permissao: 'Permissão', remocao: 'Remoção' })[t] || t }}</option></select></label>
           <div class="tabs">
             <button
               :class="{ active: filtro === 'todas' }"
@@ -114,6 +114,10 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const tipo = ref('todos')
 async function abrir(item) {
+  if (item.tipo === 'sobrecarga') {
+    if (!item.lida) await notificacoesStore.marcarComoLida(item.id)
+    return router.push({ name: 'insights', query: { projeto: item.projeto } })
+  }
   if (!item.lida) await notificacoesStore.marcarComoLida(item.id)
   if (item.projeto && item.tipo !== 'remocao') router.push({ name: 'projeto-detalhes', params: { id: item.projeto }, query: item.tarefa ? { tarefa: item.tarefa } : {} })
 }
