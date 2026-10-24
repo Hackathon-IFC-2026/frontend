@@ -209,12 +209,12 @@ function abrirMenuProjeto(projeto) {
   color: #68756a;
 }
 
-/* Layout em 3 colunas */
 .projetos-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 18px;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -243,24 +243,13 @@ function abrirMenuProjeto(projeto) {
   opacity: 0.9;
 }
 
-@media (max-width: 950px) {
-  .projetos-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-}
-
-@media (max-width: 600px) {
-  .projetos-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-}
-
 @media (max-width: 760px) {
   .projetos-container {
     padding: 20px 16px 32px;
+  }
+
+  .projetos-grid {
+    gap: 14px;
   }
 }
 </style>

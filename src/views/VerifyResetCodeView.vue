@@ -88,7 +88,7 @@ function handleBackspace(event, index) {
 </script>
 
 <template>
-  <main class="auth-view">
+  <main class="auth-view auth-view--recovery">
     <section class="verify-panel" aria-labelledby="verify-title">
       <h1 class="form-title">Código de Recuperação</h1>
 
@@ -151,25 +151,8 @@ main{
   margin: 0 0 0 190px;
 }
 
-.auth-view {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
+.auth-view--recovery {
   align-items: flex-start;
-  justify-content: center;
-  gap: 32px;
-  padding: 40px 10px 40px;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.auth-view > :first-child {
-  margin-top: auto;
-}
-.auth-view > :last-child {
-  margin-bottom: auto;
 }
 
 .description{
@@ -181,8 +164,7 @@ main{
   margin: 10px 0 0 0;
 }
 
-.text-button,
-.back-link {
+.text-button {
   display: block;
   margin-top: 18px;
   padding: 0;
@@ -194,19 +176,6 @@ main{
   font-size: 14px;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.back-link {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  font-size: 1rem;
-  color: #fff9e3;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  color: #4E7855;
 }
 
 .verification-code {

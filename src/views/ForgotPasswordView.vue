@@ -30,7 +30,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main class="auth-view">
+  <main class="auth-view auth-view--recovery">
     <section class="form-side">
       <div>
         <h1 class="form-title">Recuperação</h1>
@@ -90,51 +90,12 @@ main{
   margin: 40px 0;
 }
 
-.auth-view {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
+.auth-view--recovery {
   align-items: flex-end;
-  justify-content: center;
-  gap: 32px;
-  padding: 40px 10px 40px;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.form-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 32px;
-  max-width: 400px;
-  width: 100%;
-}
-
-.auth-view > :first-child {
-  margin-top: auto;
-}
-.auth-view > :last-child {
-  margin-bottom: auto;
 }
 
 .btn {
   padding: 16px 24px;
 }
 
-.back-link {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  font-size: 1rem;
-  color: #fff9e3;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  margin-top: 20px;
-  color: #4E7855;
-}
 </style>

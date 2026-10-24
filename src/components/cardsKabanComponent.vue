@@ -37,15 +37,14 @@
         </div>
       </div>
 
-      <span class="badge-prioridade" :class="classePrioridade">
-        {{ tarefa.prioridade || 'Alta' }}
-      </span>
+      <IndicadorPrioridade :prioridade="tarefa.prioridade" />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import IndicadorPrioridade from '@/components/IndicadorPrioridade.vue'
 
 const props = defineProps({
   tarefa: {
@@ -66,14 +65,6 @@ const props = defineProps({
 const emit = defineEmits(['dragstart-card', 'dragend-card'])
 
 const arrastando = ref(false)
-
-const classePrioridade = computed(() => {
-  const valor = String(props.tarefa.prioridade || '').toLowerCase()
-  if (valor.includes('alta')) return 'prioridade-alta'
-  if (valor.includes('med') || valor.includes('méd')) return 'prioridade-media'
-  if (valor.includes('baix')) return 'prioridade-baixa'
-  return 'prioridade-alta'
-})
 
 const participantesExibidos = computed(() => {
   if (Array.isArray(props.tarefa.participantes) && props.tarefa.participantes.length > 0) {
@@ -189,33 +180,4 @@ function aoFinalizarArrasto() {
   object-fit: cover;
 }
 
-.badge-prioridade {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1px 12px;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-/* Alta: fundo rosa claro suave com texto vermelho */
-.prioridade-alta {
-  background-color: #ffd6d9;
-  color: #ff334b;
-}
-
-/* Média: fundo laranja claro suave */
-.prioridade-media {
-  background-color: #ffebd4;
-  color: #e67300;
-}
-
-/* Baixa: fundo amarelo claro suave com texto dourado/amarelo */
-.prioridade-baixa {
-  background-color: #fff2cc;
-  color: #e6a800;
-}
 </style>
-

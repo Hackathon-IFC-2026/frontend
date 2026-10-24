@@ -29,7 +29,7 @@
 
           <router-link to="/notificacoes" class="menu-item">
             <span class="material-symbols-outlined menu-icon">notifications</span>
-            <span v-if="!sidebarCollapsed">Notificações</span>
+            <span v-if="!sidebarStore.isCollapsed">Notificações</span>
           </router-link>
 
         </nav>
@@ -308,10 +308,13 @@ const handleLogout = () => {
 
   .mobile-nav {
     position: fixed;
-    bottom: 20px;
+    bottom: max(12px, env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 40px);
+    width: min(
+      450px,
+      calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))
+    );
     max-width: 450px;
     height: 60px;
     background-color: #1A3721;
@@ -320,7 +323,7 @@ const handleLogout = () => {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 0 8px;
+    padding: 0 6px;
     z-index: 999;
   }
 
@@ -329,6 +332,8 @@ const handleLogout = () => {
     justify-content: center;
     align-items: center;
     width: 42px;
+    flex: 0 1 42px;
+    min-width: 0;
     height: 42px;
     border-radius: 12px;
     color: #fff9e3;

@@ -1,8 +1,16 @@
 <script setup>
 import { computed, ref } from 'vue'
+import IndicadorPrioridade from '@/components/IndicadorPrioridade.vue'
+import { normalizarPrioridade, OPCOES_PRIORIDADE } from '@/utils/prioridadesTarefas'
 
 const busca = ref('')
 const filtroStatus = ref('todos')
+const filtroPrioridade = ref('todas')
+const STATUS_OPTIONS = [
+  { value: 'fazer', label: 'A fazer' },
+  { value: 'em_processo', label: 'Em andamento' },
+  { value: 'concluido', label: 'Concluída' },
+]
 
 // Dados de exemplo para montar a interface; a API ainda não fornece estes dados.
 const projetos = ref([
@@ -85,36 +93,26 @@ const projetosFiltrados = computed(() => {
       tarefas: projeto.tarefas.filter((tarefa) => {
         const correspondeAoStatus =
           filtroStatus.value === 'todos' || tarefa.status === filtroStatus.value
+        const correspondeAPrioridade =
+          filtroPrioridade.value === 'todas' ||
+          normalizarPrioridade(tarefa.prioridade) === filtroPrioridade.value
         const correspondeAoTermo =
           !termo ||
           projeto.nome.toLocaleLowerCase('pt-BR').includes(termo) ||
           tarefa.titulo.toLocaleLowerCase('pt-BR').includes(termo)
 
-        return correspondeAoStatus && correspondeAoTermo
+        return correspondeAoStatus && correspondeAPrioridade && correspondeAoTermo
       }),
     }))
     .filter((projeto) => projeto.tarefas.length > 0)
 })
 
-function nomeStatus(status) {
-  const nomes = {
-    fazer: 'A fazer',
-    em_processo: 'Em andamento',
-    concluido: 'Concluída',
-  }
-
-  return nomes[status] || status
-}
+const statusLabels = Object.fromEntries(
+  STATUS_OPTIONS.map(({ value, label }) => [value, label])
+)
 
 function classeStatus(status) {
   return `status-${status}`
-}
-
-function classePrioridade(prioridade) {
-  const normalizada = prioridade.toLocaleLowerCase('pt-BR')
-  if (normalizada === 'alta') return 'prioridade-alta'
-  if (normalizada === 'média' || normalizada === 'media') return 'prioridade-media'
-  return 'prioridade-baixa'
 }
 </script>
 
@@ -188,13 +186,30 @@ function classePrioridade(prioridade) {
             />
           </label>
 
-          <label class="filtro-status">
+          <label class="filtro-select">
             <span class="visually-hidden">Filtrar tarefas por status</span>
             <select v-model="filtroStatus">
               <option value="todos">Todos os status</option>
-              <option value="fazer">A fazer</option>
-              <option value="em_processo">Em andamento</option>
-              <option value="concluido">Concluídas</option>
+              <option
+                v-for="status in STATUS_OPTIONS"
+                :key="status.value"
+                :value="status.value"
+              >
+                {{ status.label }}
+              </option>
+            </select>
+          </label>
+
+          <label class="filtro-select">
+            <span class="visually-hidden">Filtrar tarefas por prioridade</span>
+            <select v-model="filtroPrioridade">
+              <option
+                v-for="prioridade in OPCOES_PRIORIDADE"
+                :key="prioridade.value"
+                :value="prioridade.value"
+              >
+                {{ prioridade.label }}
+              </option>
             </select>
           </label>
         </div>
@@ -248,11 +263,9 @@ function classePrioridade(prioridade) {
 
               <div class="tarefa-etiquetas">
                 <span class="etiqueta-status" :class="classeStatus(tarefa.status)">
-                  {{ nomeStatus(tarefa.status) }}
+                  {{ statusLabels[tarefa.status] || tarefa.status }}
                 </span>
-                <span class="etiqueta-prioridade" :class="classePrioridade(tarefa.prioridade)">
-                  {{ tarefa.prioridade }}
-                </span>
+                <IndicadorPrioridade variante="tarefa" :prioridade="tarefa.prioridade" />
               </div>
             </li>
           </ul>
@@ -418,11 +431,15 @@ function classePrioridade(prioridade) {
 }
 
 .filtros {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
+  min-width: 0;
 }
 
 .campo-busca,
-.filtro-status select {
+.filtro-select select {
   display: flex;
   align-items: center;
   min-height: 42px;
@@ -432,9 +449,14 @@ function classePrioridade(prioridade) {
   color: #516052;
 }
 
+.filtro-select {
+  min-width: 0;
+}
+
 .campo-busca {
   gap: 8px;
   padding: 0 11px;
+  min-width: 0;
 }
 
 .campo-busca .material-symbols-outlined {
@@ -443,6 +465,7 @@ function classePrioridade(prioridade) {
 
 .campo-busca input {
   width: 190px;
+  min-width: 0;
   border: 0;
   outline: 0;
   color: #1a3721;
@@ -450,7 +473,8 @@ function classePrioridade(prioridade) {
   font-size: 0.85rem;
 }
 
-.filtro-status select {
+.filtro-select select {
+  max-width: 100%;
   padding: 0 30px 0 12px;
   font: inherit;
   font-size: 0.85rem;
@@ -608,8 +632,7 @@ function classePrioridade(prioridade) {
   gap: 8px;
 }
 
-.etiqueta-status,
-.etiqueta-prioridade {
+.etiqueta-status {
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 0.65rem;
@@ -630,21 +653,6 @@ function classePrioridade(prioridade) {
 .etiqueta-status.status-concluido {
   background: #e5f4e8;
   color: #28713e;
-}
-
-.prioridade-alta {
-  background: #ffe3e5;
-  color: #bd3342;
-}
-
-.prioridade-media {
-  background: #fff0dc;
-  color: #a75e0b;
-}
-
-.prioridade-baixa {
-  background: #eff3d8;
-  color: #6e761c;
 }
 
 .estado-vazio {
@@ -676,7 +684,7 @@ function classePrioridade(prioridade) {
   clip-path: inset(50%);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1000px) {
   .minhas-tarefas {
     padding: 20px 16px 32px;
   }
@@ -706,7 +714,28 @@ function classePrioridade(prioridade) {
     width: 100%;
   }
 
-  .filtro-status select {
+  .filtro-select select {
+    width: 100%;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1000px) {
+  .secao-cabecalho {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filtros {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .campo-busca input {
+    width: 100%;
+  }
+
+  .filtro-select select {
     width: 100%;
   }
 }
