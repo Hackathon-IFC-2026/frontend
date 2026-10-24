@@ -37,3 +37,10 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Separate backend checkout used for API integration
+/backend-integration/
+
+/.backend-backups/
+
+/src/backend/

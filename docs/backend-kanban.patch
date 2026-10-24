@@ -1,0 +1,2058 @@
+diff --git a/app/settings.py b/app/settings.py
+index 5944abe..04cc07e 100644
+--- a/app/settings.py
++++ b/app/settings.py
+@@ -73,11 +73,7 @@ DEFAULT_FRONTEND_URLS = (
+     'http://localhost:5174,http://127.0.0.1:5174,'
+     'https://hackathon-2026.class.fabricadesoftware.ifc.edu.br'
+ )
+-FRONTEND_URLS = [
+-    url.strip()
+-    for url in os.getenv('FRONTEND_URLS', DEFAULT_FRONTEND_URLS).split(',')
+-    if url.strip()
+-]
++FRONTEND_URLS = [url.strip() for url in os.getenv('FRONTEND_URLS', DEFAULT_FRONTEND_URLS).split(',') if url.strip()]
+ FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', '').rstrip('/')
+ 
+ CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
+@@ -210,6 +206,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+ 
+ # Opcional: Ativa a compressão e cache do WhiteNoise para deixar o app mais rápido
+ STORAGES = {
++    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+     'staticfiles': {
+         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+     },
+@@ -226,7 +223,7 @@ FILE_UPLOAD_PERMISSIONS = 0o640
+ # Durante o desenvolvimento o frontend precisa acessar
+ # diretamente o servidor Django.
+ 
+-MEDIA_URL = 'http://127.0.0.1:8000/media/'
++MEDIA_URL = os.getenv('MEDIA_URL', '/media/')
+ STATIC_ROOT = BASE_DIR / 'staticfiles'
+ 
+ # ============================================================
+@@ -269,7 +266,7 @@ AUTH_USER_MODEL = 'core.User'
+ # ============================================================
+ 
+ REST_FRAMEWORK = {
+-    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
++    'DEFAULT_AUTHENTICATION_CLASSES': ('core.authentication.VersionedJWTAuthentication',),
+     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',),
+     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+     'DEFAULT_PAGINATION_CLASS': 'app.pagination.CustomPagination',
+diff --git a/app/urls.py b/app/urls.py
+index 78f6b65..9228cb3 100644
+--- a/app/urls.py
++++ b/app/urls.py
+@@ -30,8 +30,10 @@ from core.views import (
+     UserViewSet,
+     ValidacaoViewSet,
+ )
++from core.views.notificacao import NotificacaoViewSet
+ 
+ router = DefaultRouter()
++router.register(r'notificacoes', NotificacaoViewSet, basename='notificacoes')
+ router.register(r'usuarios', UserViewSet, basename='usuarios')
+ router.register(r'checklists', ChecklistViewSet, basename='checklists')
+ router.register(r'comentarios', ComentarioViewSet, basename='comentarios')
+@@ -90,3 +92,10 @@ urlpatterns = [
+     # API
+     path('api/', include(router.urls)),
+ ]
++
++# Uploaded media is served by Django only in development.
++from django.conf import settings
++from django.conf.urls.static import static
++
++if settings.DEBUG and not settings.CLOUDINARY_URL:
++    urlpatterns += static(settings.MEDIA_ENDPOINT, document_root=settings.MEDIA_ROOT)
+diff --git a/core/apps.py b/core/apps.py
+index 8115ae6..d161ceb 100644
+--- a/core/apps.py
++++ b/core/apps.py
+@@ -4,3 +4,6 @@ from django.apps import AppConfig
+ class CoreConfig(AppConfig):
+     default_auto_field = 'django.db.models.BigAutoField'
+     name = 'core'
++
++    def ready(self):
++        import core.signals  # noqa: F401
+diff --git a/core/models/__init__.py b/core/models/__init__.py
+index d282ea8..99a9186 100644
+--- a/core/models/__init__.py
++++ b/core/models/__init__.py
+@@ -5,6 +5,7 @@ from .google_drive import GoogleDriveCredential as GoogleDriveCredential
+ from .google_drive import GoogleDriveOAuthState as GoogleDriveOAuthState
+ from .google_drive import TaskDriveAttachment as TaskDriveAttachment
+ from .material_apoio import MaterialApoio as MaterialApoio
++from .notificacao import Notificacao as Notificacao
+ from .participante_projeto import ParticipanteProjeto as ParticipanteProjeto
+ from .password_reset import PasswordResetChallenge as PasswordResetChallenge
+ from .projeto import Projeto as Projeto
+@@ -13,4 +14,3 @@ from .task import Task as Task
+ from .task_invitation import TaskInvitation as TaskInvitation
+ from .user import User as User
+ from .validacao import Validacao as Validacao
+-
+diff --git a/core/models/tarefa.py b/core/models/tarefa.py
+index 175ecd6..a13b16c 100644
+--- a/core/models/tarefa.py
++++ b/core/models/tarefa.py
+@@ -1,5 +1,4 @@
+ from django.db import models
+-
+ from django.utils import timezone
+ 
+ 
+@@ -16,6 +15,7 @@ class Tarefa(models.Model):
+ 
+     titulo = models.CharField(max_length=100, verbose_name='Título da Tarefa')
+     descricao = models.TextField(verbose_name='Descrição da Tarefa')
++    data_inicio = models.DateField(null=True, blank=True, verbose_name='Data de início')
+     prazo = models.DateTimeField(null=True, blank=True, verbose_name='Prazo')
+     situacao = models.CharField(
+         max_length=20, choices=Situacao.choices, default=Situacao.EM_ABERTO, verbose_name='Situação'
+@@ -24,10 +24,7 @@ class Tarefa(models.Model):
+     criada_em = models.DateTimeField(auto_now_add=True, verbose_name='Criada em')
+     atualizada_em = models.DateTimeField(auto_now=True, verbose_name='Atualizada em')
+     posicao = models.IntegerField(default=0, verbose_name='Posição')
+-    prioridade = models.IntegerField(
+-        choices=Prioridade.choices,
+-        verbose_name='Prioridade'
+-    )
++    prioridade = models.IntegerField(choices=Prioridade.choices, verbose_name='Prioridade')
+     projeto = models.ForeignKey(
+         'core.Projeto', on_delete=models.CASCADE, related_name='tarefas', verbose_name='Projeto'
+     )
+@@ -45,11 +42,7 @@ class Tarefa(models.Model):
+ 
+     @property
+     def atrasada(self):
+-        return (
+-            self.prazo is not None
+-            and self.prazo < timezone.now()
+-            and self.situacao != self.Situacao.CONCLUIDA
+-        )
++        return self.prazo is not None and self.prazo < timezone.now() and self.situacao != self.Situacao.CONCLUIDA
+ 
+     @property
+     def bloqueada(self):
+diff --git a/core/models/user.py b/core/models/user.py
+index 2a85c32..2edbdf7 100644
+--- a/core/models/user.py
++++ b/core/models/user.py
+@@ -49,7 +49,9 @@ class User(AbstractBaseUser, PermissionsMixin):
+ 
+     email = models.EmailField(max_length=255, unique=True, verbose_name=_('email'), help_text=_('Email'))
+     name = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('name'), help_text=_('Username'))
+-    data_nascimento = models.DateField(blank=True, null=True, verbose_name=_('Data de nascimento'), help_text=_('Data de nascimento'))
++    data_nascimento = models.DateField(
++        blank=True, null=True, verbose_name=_('Data de nascimento'), help_text=_('Data de nascimento')
++    )
+     is_active = models.BooleanField(
+         default=True,
+         verbose_name=_('Usuário está ativo'),
+@@ -61,6 +63,10 @@ class User(AbstractBaseUser, PermissionsMixin):
+         help_text=_('Indica que este usuário pode acessar o Admin.'),
+     )
+ 
++    foto = models.ImageField(upload_to='usuarios/avatares/', blank=True, null=True)
++
++    token_version = models.PositiveIntegerField(default=0)
++
+     objects = UserManager()
+ 
+     USERNAME_FIELD = 'email'
+diff --git a/core/serializers/checklist.py b/core/serializers/checklist.py
+index e7b7f08..7db64db 100644
+--- a/core/serializers/checklist.py
++++ b/core/serializers/checklist.py
+@@ -1,9 +1,23 @@
+-﻿from rest_framework import serializers
++from rest_framework import serializers
++from rest_framework.exceptions import PermissionDenied
+ 
+ from core.models import Checklist
++from core.project_permissions import edita_tarefa, participa
+ 
+ 
+ class ChecklistSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Checklist
+         fields = '__all__'
++        read_only_fields = ('id',)
++
++    def validate(self, attrs):
++        parent = getattr(self.instance, 'tarefa') if self.instance else attrs['tarefa']
++        if self.instance and attrs.get('tarefa', parent) != parent:
++            raise serializers.ValidationError('Não é permitido transferir este registro.')
++        projeto = parent.projeto
++        if not participa(projeto, self.context['request'].user):
++            raise PermissionDenied('Você não participa deste projeto.')
++        if not edita_tarefa(parent, self.context['request'].user):
++            raise PermissionDenied('Você não pode modificar esta tarefa.')
++        return attrs
+diff --git a/core/serializers/comentario.py b/core/serializers/comentario.py
+index 070989e..913cf28 100644
+--- a/core/serializers/comentario.py
++++ b/core/serializers/comentario.py
+@@ -1,9 +1,23 @@
+-﻿from rest_framework import serializers
++from rest_framework import serializers
++from rest_framework.exceptions import PermissionDenied
+ 
+ from core.models import Comentario
++from core.project_permissions import edita_tarefa
+ 
+ 
+ class ComentarioSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Comentario
+         fields = '__all__'
++        read_only_fields = (
++            'id',
++            'autor',
++        )
++
++    def validate(self, attrs):
++        parent = getattr(self.instance, 'tarefa') if self.instance else attrs['tarefa']
++        if self.instance and attrs.get('tarefa', parent) != parent:
++            raise serializers.ValidationError('Não é permitido transferir este registro.')
++        if not edita_tarefa(parent, self.context['request'].user):
++            raise PermissionDenied('Você não participa deste projeto.')
++        return attrs
+diff --git a/core/serializers/material_apoio.py b/core/serializers/material_apoio.py
+index de7b0f6..35f7314 100644
+--- a/core/serializers/material_apoio.py
++++ b/core/serializers/material_apoio.py
+@@ -1,9 +1,24 @@
+-﻿from rest_framework import serializers
++from rest_framework import serializers
++from rest_framework.exceptions import PermissionDenied
+ 
+ from core.models import MaterialApoio
++from core.project_permissions import participa
+ 
+ 
+ class MaterialApoioSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = MaterialApoio
+         fields = '__all__'
++        read_only_fields = (
++            'id',
++            'criador',
++        )
++
++    def validate(self, attrs):
++        parent = getattr(self.instance, 'projeto') if self.instance else attrs['projeto']
++        if self.instance and attrs.get('projeto', parent) != parent:
++            raise serializers.ValidationError('Não é permitido transferir este registro.')
++        projeto = parent
++        if not participa(projeto, self.context['request'].user):
++            raise PermissionDenied('Você não participa deste projeto.')
++        return attrs
+diff --git a/core/serializers/participante_projeto.py b/core/serializers/participante_projeto.py
+index 7260de4..e973da7 100644
+--- a/core/serializers/participante_projeto.py
++++ b/core/serializers/participante_projeto.py
+@@ -1,9 +1,22 @@
+-﻿from rest_framework import serializers
++from rest_framework import serializers
++from rest_framework.exceptions import PermissionDenied
+ 
+ from core.models import ParticipanteProjeto
++from core.project_permissions import administra
+ 
+ 
+ class ParticipanteProjetoSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = ParticipanteProjeto
+         fields = '__all__'
++
++    def validate(self, attrs):
++        projeto = self.instance.projeto if self.instance else attrs['projeto']
++        usuario = self.instance.usuario if self.instance else attrs['usuario']
++        if not administra(projeto, self.context['request'].user):
++            raise PermissionDenied('Somente administradores podem gerenciar participantes.')
++        if self.instance and (attrs.get('projeto', projeto) != projeto or attrs.get('usuario', usuario) != usuario):
++            raise serializers.ValidationError('Não é permitido transferir uma participação.')
++        if not usuario.is_active:
++            raise serializers.ValidationError({'usuario': 'A conta precisa estar ativa.'})
++        return attrs
+diff --git a/core/serializers/projeto.py b/core/serializers/projeto.py
+index 0da7ae8..d89fde6 100644
+--- a/core/serializers/projeto.py
++++ b/core/serializers/projeto.py
+@@ -1,6 +1,7 @@
+-﻿from rest_framework import serializers
++from django.db import transaction
++from rest_framework import serializers
+ 
+-from core.models import Projeto
++from core.models import ParticipanteProjeto, Projeto
+ 
+ 
+ class ProjetoSerializer(serializers.ModelSerializer):
+@@ -9,6 +10,8 @@ class ProjetoSerializer(serializers.ModelSerializer):
+         fields = '__all__'
+         read_only_fields = ('id', 'criado_em', 'atualizado_em', 'criado_por')
+ 
++    @transaction.atomic
+     def create(self, validated_data):
+-        validated_data['criado_por'] = self.context['request'].user
+-        return super().create(validated_data)
++        projeto = Projeto.objects.create(criado_por=self.context['request'].user, **validated_data)
++        ParticipanteProjeto.objects.create(projeto=projeto, usuario=projeto.criado_por, papel='admin')
++        return projeto
+diff --git a/core/serializers/tarefa.py b/core/serializers/tarefa.py
+index e96e369..b3e1fe8 100644
+--- a/core/serializers/tarefa.py
++++ b/core/serializers/tarefa.py
+@@ -1,139 +1,64 @@
++from django.utils import timezone
+ from rest_framework import serializers
++from rest_framework.exceptions import PermissionDenied
+ 
+ from core.models import Tarefa, User
+-from django.utils import timezone
++from core.project_permissions import administra, participa
++
+ 
+ class TarefaSerializer(serializers.ModelSerializer):
+     bloqueada = serializers.BooleanField(read_only=True)
+     atrasada = serializers.BooleanField(read_only=True)
+     responsavel = serializers.PrimaryKeyRelatedField(
+-        queryset=User.objects.all(),
+-        required=False,
+-        allow_null=True,
++        queryset=User.objects.filter(is_active=True), required=False, allow_null=True
+     )
+ 
+     class Meta:
+         model = Tarefa
+         fields = '__all__'
+-        read_only_fields = (
+-            'id',
+-            'criador',
+-            'concluida_em',
+-            'criada_em',
+-            'atualizada_em',
+-        )
+-
+-    def validate_projeto(self, projeto):
+-        usuario = self.context['request'].user
+-
+-        participa = projeto.participantes.filter(usuario=usuario).exists()
+-
+-        if not participa:
+-            raise serializers.ValidationError('Você precisa participar do projeto para criar tarefas.')
+-
+-        return projeto
+-
+-    def get_fields(self):
+-        fields = super().get_fields()
+-
+-        if self.instance is not None:
+-            fields['projeto'].read_only = True
+-
+-        return fields
++        read_only_fields = ('id', 'criador', 'concluida_em', 'criada_em', 'atualizada_em')
+ 
+     def validate(self, attrs):
+-        usuario = self.context['request'].user
+-
+-        # Na criação, a validação do projeto já é feita em validate_projeto().
+-        if self.instance is None:
+-            return attrs
+-
+-        projeto = self.instance.projeto
+-
+-        eh_admin = projeto.participantes.filter(
+-            usuario=usuario,
+-            papel='admin'
+-        ).exists()
+-
+-        responsavel_enviado = (
+-            'responsavel' in attrs
+-            and attrs['responsavel'] != self.instance.responsavel
+-        )
+-
+-        if responsavel_enviado and not eh_admin:
+-            raise serializers.ValidationError({
+-                'responsavel': 'Somente administradores podem alterar o responsável.'
+-            })
+-
+-        if responsavel_enviado:
+-            responsavel = attrs['responsavel']
+-
+-            if responsavel is not None:
+-                participa = projeto.participantes.filter(
+-                    usuario=responsavel
+-                ).exists()
+-
+-                if not participa:
+-                    raise serializers.ValidationError({
+-                        'responsavel': 'O responsável precisa participar deste projeto.'
+-                    })
+-
++        user = self.context['request'].user
++        projeto = self.instance.projeto if self.instance else attrs['projeto']
++        if self.instance and 'projeto' in attrs and attrs['projeto'].pk != self.instance.projeto_id:
++            raise serializers.ValidationError({'projeto': 'Não é permitido transferir tarefas entre projetos.'})
++        admin = administra(projeto, user)
++        if self.instance is None and not admin:
++            raise PermissionDenied('Somente o administrador pode criar tarefas.')
++        if self.instance and not admin and self.instance.responsavel_id != user.pk:
++            raise PermissionDenied('Você não é responsável por esta tarefa.')
++        if self.instance and 'responsavel' in attrs and attrs['responsavel'] != self.instance.responsavel and not admin:
++            raise PermissionDenied('Somente o administrador pode alterar o responsável.')
++        responsavel = attrs.get('responsavel')
++        if responsavel and not participa(projeto, responsavel):
++            raise serializers.ValidationError({'responsavel': 'O responsável precisa participar do projeto.'})
++        inicio = attrs.get('data_inicio', self.instance.data_inicio if self.instance else None)
++        prazo = attrs.get('prazo', self.instance.prazo if self.instance else None)
++        if inicio and prazo:
++            from zoneinfo import ZoneInfo
++
++            dia_prazo = (
++                timezone.localtime(prazo, ZoneInfo('America/Sao_Paulo')).date()
++                if timezone.is_aware(prazo)
++                else prazo.date()
++            )
++            if inicio > dia_prazo:
++                raise serializers.ValidationError({
++                    'prazo': 'O prazo de conclusão não pode ser anterior à data de início.'
++                })
+         return attrs
+ 
+     def create(self, validated_data):
+-        usuario = self.context['request'].user
+-
+-        validated_data['criador'] = usuario
+-        validated_data['responsavel'] = usuario
+-
+-        situacao = validated_data.get(
+-            'situacao',
+-            Tarefa.Situacao.EM_ABERTO
++        validated_data['criador'] = self.context['request'].user
++        validated_data.setdefault('responsavel', self.context['request'].user)
++        validated_data['concluida_em'] = (
++            timezone.now() if validated_data.get('situacao') == Tarefa.Situacao.CONCLUIDA else None
+         )
+-
+-        if situacao == Tarefa.Situacao.CONCLUIDA:
+-            validated_data['concluida_em'] = timezone.now()
+-        else:
+-            validated_data['concluida_em'] = None
+-
+         return super().create(validated_data)
+-    
+-    def update(self, instance, validated_data):
+-        usuario = self.context['request'].user
+-        projeto = instance.projeto
+-
+-        eh_admin = projeto.participantes.filter(
+-            usuario=usuario,
+-            papel='admin'
+-        ).exists()
+-
+-        responsavel_enviado = 'responsavel' in validated_data
+-
+-        if instance.bloqueada:
+-            if not eh_admin or not responsavel_enviado:
+-                raise serializers.ValidationError(
+-                    'Esta tarefa está bloqueada. Somente um administrador '
+-                    'pode atribuir um novo responsável.'
+-                )
+-            if set(validated_data.keys()) != {'responsavel'}:
+-                raise serializers.ValidationError(
+-                    'Enquanto a tarefa estiver bloqueada, só é permitido atribuir um responsável.'
+-                )
+-
+-            if validated_data['responsavel'] is None:
+-                raise serializers.ValidationError({
+-                    'responsavel': 'Escolha um responsável para desbloquear a tarefa.'
+-                })
+-
+-        situacao = validated_data.get(
+-            'situacao',
+-            instance.situacao
+-        )
+-
+-        if situacao == Tarefa.Situacao.CONCLUIDA:
+-            if instance.situacao != Tarefa.Situacao.CONCLUIDA:
+-                validated_data['concluida_em'] = timezone.now()
+-        else:
+-            validated_data['concluida_em'] = None
+ 
++    def update(self, instance, validated_data):
++        situacao = validated_data.get('situacao', instance.situacao)
++        if situacao != instance.situacao:
++            validated_data['concluida_em'] = timezone.now() if situacao == Tarefa.Situacao.CONCLUIDA else None
+         return super().update(instance, validated_data)
+diff --git a/core/serializers/user.py b/core/serializers/user.py
+index 01d0831..013368e 100644
+--- a/core/serializers/user.py
++++ b/core/serializers/user.py
+@@ -4,19 +4,110 @@ from rest_framework.serializers import ModelSerializer
+ from core.models import User
+ 
+ 
+-class UserSerializer(ModelSerializer):
++class BirthdayValidationMixin:
++    def validate_data_nascimento(self, value):
++        from django.utils import timezone
++
++        if value and value > timezone.localdate():
++            raise serializers.ValidationError('A data de nascimento não pode estar no futuro.')
++        return value
++
++
++class UserSerializer(BirthdayValidationMixin, ModelSerializer):
+     class Meta:
+         model = User
+-        fields = ['id', 'email', 'name', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'groups']
++        fields = [
++            'id',
++            'email',
++            'name',
++            'data_nascimento',
++            'foto',
++            'is_active',
++            'is_staff',
++            'is_superuser',
++            'last_login',
++            'groups',
++        ]
++        read_only_fields = ('id', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'groups')
+         depth = 1
+ 
++    def validate_foto(self, arquivo):
++        if arquivo is None:
++            return arquivo
++        from io import BytesIO
++        from uuid import uuid4
++
++        from django.core.files.base import ContentFile
++        from PIL import Image, UnidentifiedImageError
++
++        if arquivo.size > 5 * 1024 * 1024:
++            raise serializers.ValidationError('A imagem deve ter no máximo 5 MB.')
++        try:
++            with Image.open(arquivo) as imagem:
++                if imagem.format not in {'JPEG', 'PNG', 'WEBP'}:
++                    raise serializers.ValidationError('Envie uma imagem JPG, PNG ou WebP.')
++                if imagem.width * imagem.height > 20_000_000:
++                    raise serializers.ValidationError('A resolução da imagem é muito grande.')
++                imagem.verify()
++            arquivo.seek(0)
++            with Image.open(arquivo) as imagem:
++                from PIL import ImageOps
++
++                imagem = ImageOps.exif_transpose(imagem).convert('RGB')
++                imagem.thumbnail((1024, 1024))
++                saida = BytesIO()
++                imagem.save(saida, format='JPEG', quality=90)
++            return ContentFile(saida.getvalue(), name=str(uuid4()) + '.jpg')
++        except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
++            raise serializers.ValidationError('O arquivo enviado não é uma imagem válida.')
++
++    def update(self, instance, validated_data):
++        from django.db import transaction
++
++        anterior = instance.foto.name if instance.foto else None
++        storage = instance.foto.storage
++        alterando = 'foto' in validated_data
++        usuario = super().update(instance, validated_data)
++        if alterando and anterior and anterior != (usuario.foto.name if usuario.foto else None):
++            transaction.on_commit(lambda: storage.delete(anterior), robust=True)
++        return usuario
++
+ 
+-class UserRegistrationSerializer(ModelSerializer):
++class UserRegistrationSerializer(BirthdayValidationMixin, ModelSerializer):
++    data_nascimento = serializers.DateField(required=True, allow_null=False)
+     password = serializers.CharField(write_only=True, min_length=8)
+ 
+     class Meta:
+         model = User
+-        fields = ['id', 'email', 'name', 'password']
++        fields = ['id', 'email', 'name', 'data_nascimento', 'password']
+ 
+     def create(self, validated_data):
+         return User.objects.create_user(**validated_data)
++
++
++class AlterarSenhaSerializer(serializers.Serializer):
++    senha_atual = serializers.CharField(write_only=True, trim_whitespace=False)
++    nova_senha = serializers.CharField(write_only=True, trim_whitespace=False)
++    confirmar_senha = serializers.CharField(write_only=True, trim_whitespace=False)
++
++    def validate(self, attrs):
++        from django.contrib.auth.password_validation import validate_password
++        from django.core.exceptions import ValidationError
++
++        user = self.context['request'].user
++        if not user.check_password(attrs['senha_atual']):
++            raise serializers.ValidationError({'senha_atual': 'Senha atual incorreta.'})
++        if attrs['nova_senha'] != attrs['confirmar_senha']:
++            raise serializers.ValidationError({'confirmar_senha': 'As senhas não coincidem.'})
++        try:
++            validate_password(attrs['nova_senha'], user=user)
++        except ValidationError as exc:
++            raise serializers.ValidationError({'nova_senha': exc.messages})
++        return attrs
++
++
++class UserDirectorySerializer(ModelSerializer):
++    class Meta:
++        model = User
++        fields = ['id', 'name', 'email', 'foto']
++        read_only_fields = fields
+diff --git a/core/views/checklist.py b/core/views/checklist.py
+index eba9288..d1735ca 100644
+--- a/core/views/checklist.py
++++ b/core/views/checklist.py
+@@ -1,11 +1,27 @@
+-﻿from rest_framework.permissions import IsAuthenticated
++from rest_framework.exceptions import ValidationError
++from rest_framework.permissions import IsAuthenticated
+ from rest_framework.viewsets import ModelViewSet
+ 
+ from core.models import Checklist
++from core.project_permissions import ChecklistPermission, projetos_visiveis
+ from core.serializers import ChecklistSerializer
+ 
+ 
+ class ChecklistViewSet(ModelViewSet):
+-    queryset = Checklist.objects.all().order_by('ordem', 'id')
++    queryset = Checklist.objects.none()
+     serializer_class = ChecklistSerializer
+-    permission_classes = [IsAuthenticated]
++    permission_classes = [IsAuthenticated, ChecklistPermission]
++
++    def get_queryset(self):
++        qs = (
++            Checklist.objects
++            .filter(tarefa__projeto__in=projetos_visiveis(self.request.user))
++            .select_related('tarefa__projeto')
++            .order_by('ordem', 'id')
++        )
++        value = self.request.query_params.get('tarefa')
++        if value:
++            if not value.isdigit():
++                raise ValidationError({'tarefa': 'ID inválido.'})
++            qs = qs.filter(tarefa_id=value)
++        return qs
+diff --git a/core/views/comentario.py b/core/views/comentario.py
+index d6e70cf..4129e11 100644
+--- a/core/views/comentario.py
++++ b/core/views/comentario.py
+@@ -1,11 +1,30 @@
+-﻿from rest_framework.permissions import IsAuthenticated
++from rest_framework.exceptions import ValidationError
++from rest_framework.permissions import IsAuthenticated
+ from rest_framework.viewsets import ModelViewSet
+ 
+ from core.models import Comentario
++from core.project_permissions import ComentarioPermission, projetos_visiveis
+ from core.serializers import ComentarioSerializer
+ 
+ 
+ class ComentarioViewSet(ModelViewSet):
+-    queryset = Comentario.objects.all().order_by('criado_em')
++    queryset = Comentario.objects.none()
+     serializer_class = ComentarioSerializer
+-    permission_classes = [IsAuthenticated]
++    permission_classes = [IsAuthenticated, ComentarioPermission]
++
++    def get_queryset(self):
++        qs = (
++            Comentario.objects
++            .filter(tarefa__projeto__in=projetos_visiveis(self.request.user))
++            .select_related('tarefa__projeto')
++            .order_by('criado_em', 'id')
++        )
++        value = self.request.query_params.get('tarefa')
++        if value:
++            if not value.isdigit():
++                raise ValidationError({'tarefa': 'ID inválido.'})
++            qs = qs.filter(tarefa_id=value)
++        return qs
++
++    def perform_create(self, serializer):
++        serializer.save(autor=self.request.user)
+diff --git a/core/views/material_apoio.py b/core/views/material_apoio.py
+index a138798..d5568e7 100644
+--- a/core/views/material_apoio.py
++++ b/core/views/material_apoio.py
+@@ -1,11 +1,30 @@
+-﻿from rest_framework.permissions import IsAuthenticated
++from rest_framework.exceptions import ValidationError
++from rest_framework.permissions import IsAuthenticated
+ from rest_framework.viewsets import ModelViewSet
+ 
+ from core.models import MaterialApoio
++from core.project_permissions import MaterialPermission, projetos_visiveis
+ from core.serializers import MaterialApoioSerializer
+ 
+ 
+ class MaterialApoioViewSet(ModelViewSet):
+-    queryset = MaterialApoio.objects.all().order_by('criado_em')
++    queryset = MaterialApoio.objects.none()
+     serializer_class = MaterialApoioSerializer
+-    permission_classes = [IsAuthenticated]
++    permission_classes = [IsAuthenticated, MaterialPermission]
++
++    def get_queryset(self):
++        qs = (
++            MaterialApoio.objects
++            .filter(projeto__in=projetos_visiveis(self.request.user))
++            .select_related('projeto')
++            .order_by('criado_em', 'id')
++        )
++        value = self.request.query_params.get('projeto')
++        if value:
++            if not value.isdigit():
++                raise ValidationError({'projeto': 'ID inválido.'})
++            qs = qs.filter(projeto_id=value)
++        return qs
++
++    def perform_create(self, serializer):
++        serializer.save(criador=self.request.user)
+diff --git a/core/views/participante_projeto.py b/core/views/participante_projeto.py
+index d2d3b70..9e11fba 100644
+--- a/core/views/participante_projeto.py
++++ b/core/views/participante_projeto.py
+@@ -1,11 +1,58 @@
+-﻿from rest_framework.permissions import IsAuthenticated
++from django.db import transaction
++from rest_framework.exceptions import PermissionDenied, ValidationError
++from rest_framework.permissions import IsAuthenticated
+ from rest_framework.viewsets import ModelViewSet
+ 
+-from core.models import ParticipanteProjeto
++from core.models import ParticipanteProjeto, Projeto, Tarefa
++from core.project_permissions import ProjetoPermission, administra, projetos_visiveis
+ from core.serializers import ParticipanteProjetoSerializer
+ 
+ 
+ class ParticipanteProjetoViewSet(ModelViewSet):
+-    queryset = ParticipanteProjeto.objects.all().order_by('entrou_em')
++    queryset = ParticipanteProjeto.objects.none()
+     serializer_class = ParticipanteProjetoSerializer
+-    permission_classes = [IsAuthenticated]
++    permission_classes = [IsAuthenticated, ProjetoPermission]
++
++    def get_queryset(self):
++        qs = (
++            ParticipanteProjeto.objects
++            .filter(projeto__in=projetos_visiveis(self.request.user))
++            .select_related('projeto')
++            .order_by('entrou_em', 'id')
++        )
++        projeto = self.request.query_params.get('projeto')
++        if projeto:
++            if not projeto.isdigit():
++                raise ValidationError({'projeto': 'ID inválido.'})
++            qs = qs.filter(projeto_id=projeto)
++        return qs
++
++    def bloquear_projeto(self, projeto):
++        projeto = Projeto.objects.select_for_update().get(pk=projeto.pk)
++        if not administra(projeto, self.request.user):
++            raise PermissionDenied('Somente administradores podem gerenciar participantes.')
++        return projeto
++
++    @transaction.atomic
++    def perform_create(self, serializer):
++        self.bloquear_projeto(serializer.validated_data['projeto'])
++        serializer.save()
++
++    def verificar_ultimo(self, projeto, instance):
++        atual = ParticipanteProjeto.objects.get(pk=instance.pk)
++        if atual.papel == 'admin' and projeto.participantes.filter(papel='admin').count() <= 1:
++            raise ValidationError({'papel': 'O projeto precisa manter pelo menos um administrador.'})
++
++    @transaction.atomic
++    def perform_update(self, serializer):
++        projeto = self.bloquear_projeto(serializer.instance.projeto)
++        if serializer.validated_data.get('papel', serializer.instance.papel) != 'admin':
++            self.verificar_ultimo(projeto, serializer.instance)
++        serializer.save()
++
++    @transaction.atomic
++    def perform_destroy(self, instance):
++        projeto = self.bloquear_projeto(instance.projeto)
++        self.verificar_ultimo(projeto, instance)
++        Tarefa.objects.filter(projeto=projeto, responsavel=instance.usuario).update(responsavel=None)
++        instance.delete()
+diff --git a/core/views/projeto.py b/core/views/projeto.py
+index 48d2af8..9ef385c 100644
+--- a/core/views/projeto.py
++++ b/core/views/projeto.py
+@@ -1,11 +1,32 @@
+-﻿from rest_framework.permissions import IsAuthenticated
++from django.db import transaction
++from rest_framework.exceptions import PermissionDenied
++from rest_framework.permissions import IsAuthenticated
+ from rest_framework.viewsets import ModelViewSet
+ 
+ from core.models import Projeto
++from core.project_permissions import ProjetoPermission, administra, projetos_visiveis
+ from core.serializers import ProjetoSerializer
+ 
+ 
+ class ProjetoViewSet(ModelViewSet):
+-    queryset = Projeto.objects.all().order_by('criado_em')
++    queryset = Projeto.objects.none()
+     serializer_class = ProjetoSerializer
+-    permission_classes = [IsAuthenticated]
++    permission_classes = [IsAuthenticated, ProjetoPermission]
++
++    def get_queryset(self):
++        return projetos_visiveis(self.request.user).select_related('criado_por').order_by('criado_em', 'id')
++
++    @transaction.atomic
++    def perform_update(self, serializer):
++        projeto = Projeto.objects.select_for_update().get(pk=serializer.instance.pk)
++        if not administra(projeto, self.request.user):
++            raise PermissionDenied('Somente administradores podem editar o projeto.')
++        serializer.instance = projeto
++        serializer.save()
++
++    @transaction.atomic
++    def perform_destroy(self, instance):
++        projeto = Projeto.objects.select_for_update().get(pk=instance.pk)
++        if not administra(projeto, self.request.user):
++            raise PermissionDenied('Somente administradores podem excluir o projeto.')
++        projeto.delete()
+diff --git a/core/views/tarefa.py b/core/views/tarefa.py
+index e97bee1..5f5bcc8 100644
+--- a/core/views/tarefa.py
++++ b/core/views/tarefa.py
+@@ -1,11 +1,62 @@
+-﻿from rest_framework.permissions import IsAuthenticated
++from django.db import transaction
++from rest_framework.exceptions import PermissionDenied, ValidationError
++from rest_framework.permissions import IsAuthenticated
+ from rest_framework.viewsets import ModelViewSet
+ 
+-from core.models import Tarefa
++from core.models import Projeto, Tarefa
++from core.project_permissions import TarefaPermission, administra, edita_tarefa, participa, projetos_visiveis
+ from core.serializers import TarefaSerializer
+ 
+ 
+ class TarefaViewSet(ModelViewSet):
+-    queryset = Tarefa.objects.all().order_by('posicao', 'criada_em')
++    queryset = Tarefa.objects.none()
+     serializer_class = TarefaSerializer
+-    permission_classes = [IsAuthenticated]
++    permission_classes = [IsAuthenticated, TarefaPermission]
++
++    def get_queryset(self):
++        qs = (
++            Tarefa.objects
++            .filter(projeto__in=projetos_visiveis(self.request.user))
++            .select_related('projeto', 'responsavel')
++            .order_by('posicao', 'criada_em', 'id')
++        )
++        projeto = self.request.query_params.get('projeto')
++        if projeto:
++            if not projeto.isdigit():
++                raise ValidationError({'projeto': 'ID inválido.'})
++            qs = qs.filter(projeto_id=projeto)
++        return qs
++
++    @transaction.atomic
++    def perform_create(self, serializer):
++        projeto = Projeto.objects.select_for_update().get(pk=serializer.validated_data['projeto'].pk)
++        if not administra(projeto, self.request.user):
++            raise PermissionDenied('Somente administradores podem criar tarefas.')
++        responsavel = serializer.validated_data.get('responsavel')
++        if responsavel and not participa(projeto, responsavel):
++            raise ValidationError({'responsavel': 'O responsável precisa participar do projeto.'})
++        serializer.save()
++
++    @transaction.atomic
++    def perform_update(self, serializer):
++        projeto = Projeto.objects.select_for_update().get(pk=serializer.instance.projeto_id)
++        tarefa = Tarefa.objects.select_for_update().get(pk=serializer.instance.pk)
++        if not edita_tarefa(tarefa, self.request.user):
++            raise PermissionDenied('Você não pode editar esta tarefa.')
++        if 'responsavel' in serializer.validated_data and not administra(projeto, self.request.user):
++            if serializer.validated_data['responsavel'] != tarefa.responsavel:
++                raise PermissionDenied('Somente administradores podem alterar responsáveis.')
++        responsavel = serializer.validated_data.get('responsavel')
++        if responsavel and not participa(projeto, responsavel):
++            raise ValidationError({'responsavel': 'O responsável precisa participar do projeto.'})
++        serializer.instance = tarefa
++        serializer.validate(serializer.validated_data.copy())
++        serializer.save()
++
++    @transaction.atomic
++    def perform_destroy(self, instance):
++        Projeto.objects.select_for_update().get(pk=instance.projeto_id)
++        instance.refresh_from_db()
++        if not edita_tarefa(instance, self.request.user):
++            raise PermissionDenied('Você não pode excluir esta tarefa.')
++        instance.delete()
+diff --git a/core/views/token.py b/core/views/token.py
+index f33a37c..32f0a5c 100644
+--- a/core/views/token.py
++++ b/core/views/token.py
+@@ -13,32 +13,36 @@ from rest_framework_simplejwt.views import (
+ 
+ @extend_schema_view(
+     post=extend_schema(
+-        summary="Obter token JWT",
+-        description="Autentica com e-mail e senha. Retorna access token e refresh token.",
++        summary='Obter token JWT',
++        description='Autentica com e-mail e senha. Retorna access token e refresh token.',
+         request=TokenObtainPairSerializer,
+         responses={200: TokenObtainPairSerializer, 401: None},
+     )
+ )
+ class CustomTokenObtainPairView(TokenObtainPairView):
+-    pass
++    from core.authentication import VersionedPairSerializer
++
++    serializer_class = VersionedPairSerializer
+ 
+ 
+ @extend_schema_view(
+     post=extend_schema(
+-        summary="Atualizar token JWT",
+-        description="Retorna um novo access token a partir do refresh token.",
++        summary='Atualizar token JWT',
++        description='Retorna um novo access token a partir do refresh token.',
+         request=TokenRefreshSerializer,
+         responses={200: TokenRefreshSerializer, 401: None},
+     )
+ )
+ class CustomTokenRefreshView(TokenRefreshView):
+-    pass
++    from core.authentication import VersionedRefreshSerializer
++
++    serializer_class = VersionedRefreshSerializer
+ 
+ 
+ @extend_schema_view(
+     post=extend_schema(
+-        summary="Verificar token JWT",
+-        description="Verifica se um token JWT (access ou refresh) é válido.",
++        summary='Verificar token JWT',
++        description='Verifica se um token JWT (access ou refresh) é válido.',
+         request=TokenVerifySerializer,
+         responses={200: None, 401: None},
+     )
+diff --git a/core/views/user.py b/core/views/user.py
+index 88cb318..3fceb86 100644
+--- a/core/views/user.py
++++ b/core/views/user.py
+@@ -15,22 +15,84 @@ class UserViewSet(ModelViewSet):
+     serializer_class = UserSerializer
+     permission_classes = [IsAuthenticated]
+ 
++    http_method_names = ['get', 'post', 'patch', 'put', 'delete', 'head', 'options']
++
++    def create(self, request, *args, **kwargs):
++        from rest_framework.exceptions import MethodNotAllowed
++
++        raise MethodNotAllowed('POST')
++
++    def perform_destroy(self, instance):
++        from django.db import transaction
++        from django.db.models.deletion import ProtectedError
++        from rest_framework.exceptions import ValidationError
++
++        from core.models import Projeto
++
++        with transaction.atomic():
++            projetos = Projeto.objects.select_for_update().filter(participantes__usuario=instance)
++            for projeto in projetos:
++                if (
++                    projeto.participantes.filter(usuario=instance, papel='admin').exists()
++                    and projeto.participantes.filter(papel='admin').count() <= 1
++                ):
++                    raise ValidationError('Defina outro administrador antes de excluir a conta.')
++            try:
++                instance.delete()
++            except ProtectedError:
++                raise ValidationError('Esta conta possui registros vinculados e não pode ser excluída.')
++
++    def get_serializer_class(self):
++        if self.action in ['list', 'retrieve']:
++            from core.serializers.user import UserDirectorySerializer
++
++            return UserDirectorySerializer
++        return UserSerializer
++
++    def get_queryset(self):
++        if self.request.method not in ['GET', 'HEAD', 'OPTIONS']:
++            return User.objects.filter(pk=self.request.user.pk)
++        qs = User.objects.filter(is_active=True).order_by('id')
++        email = self.request.query_params.get('email')
++        return qs.filter(email__iexact=email) if email else qs
++
+     @extend_schema(
+-        summary="Dados do usuário autenticado",
+-        description="Retorna os dados do usuário autenticado.",
++        summary='Dados do usuário autenticado',
++        description='Retorna os dados do usuário autenticado.',
+         responses={200: UserSerializer, 401: None},
+     )
+     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+     def me(self, request):
+-        """ Retorna os dados do usuário autenticado."""
++        """Retorna os dados do usuário autenticado."""
+         user = request.user
+-        serializer = UserSerializer(user)
++        serializer = UserSerializer(user, context={'request': request})
+         return Response(serializer.data, status=status.HTTP_200_OK)
+ 
++    @action(detail=False, methods=['post'], url_path='alterar-senha')
++    def alterar_senha(self, request):
++        from django.db import transaction
++
++        from core.authentication import VersionedPairSerializer
++        from core.serializers.user import AlterarSenhaSerializer
++
++        serializer = AlterarSenhaSerializer(data=request.data, context={'request': request})
++        serializer.is_valid(raise_exception=True)
++        with transaction.atomic():
++            user = User.objects.select_for_update().get(pk=request.user.pk)
++            if not user.check_password(serializer.validated_data['senha_atual']):
++                from rest_framework.exceptions import ValidationError
++
++                raise ValidationError({'senha_atual': 'Senha atual incorreta.'})
++            user.set_password(serializer.validated_data['nova_senha'])
++            user.token_version += 1
++            user.save(update_fields=['password', 'token_version'])
++            refresh = VersionedPairSerializer.get_token(user)
++        return Response({'mensagem': 'Senha atualizada.', 'access': str(refresh.access_token), 'refresh': str(refresh)})
++
+ 
+ @extend_schema(
+-    summary="Registro de novo usuário",
+-    description="Cria um novo usuário no sistema. Não requer autenticação.",
++    summary='Registro de novo usuário',
++    description='Cria um novo usuário no sistema. Não requer autenticação.',
+     request=UserRegistrationSerializer,
+     responses={201: UserRegistrationSerializer, 400: None},
+ )
+diff --git a/app/test_settings.py b/app/test_settings.py
+new file mode 100644
+--- /dev/null
++++ b/app/test_settings.py
+@@ -0,0 +1,18 @@
++from .settings import *  # noqa: F403
++
++DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}}
++SECRET_KEY = 'kando-local-test-key-only-0123456789-abcdefghijklmnopqrstuvwxyz'
++EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
++FRONTEND_BASE_URL = 'https://kando.test'
++PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
++STORAGES = {
++    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
++    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
++}
++EMAIL_HOST = 'smtp.example.test'
++EMAIL_HOST_USER = 'sender@example.com'
++EMAIL_HOST_PASSWORD = 'test-only-password'
++DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
++EMAIL_USE_TLS = True
++EMAIL_USE_SSL = False
++EMAIL_PORT = 587
+diff --git a/core/authentication.py b/core/authentication.py
+new file mode 100644
+--- /dev/null
++++ b/core/authentication.py
+@@ -0,0 +1,34 @@
++from rest_framework.exceptions import AuthenticationFailed
++from rest_framework_simplejwt.authentication import JWTAuthentication
++from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
++from rest_framework_simplejwt.tokens import RefreshToken
++
++from core.models import User
++
++
++def conferir(user, token):
++    if not user or not user.is_active or token.get('version', 0) != user.token_version:
++        raise AuthenticationFailed('Sessão expirada. Entre novamente.')
++
++
++class VersionedJWTAuthentication(JWTAuthentication):
++    def get_user(self, validated_token):
++        user = super().get_user(validated_token)
++        conferir(user, validated_token)
++        return user
++
++
++class VersionedPairSerializer(TokenObtainPairSerializer):
++    @classmethod
++    def get_token(cls, user):
++        token = super().get_token(user)
++        token['version'] = user.token_version
++        return token
++
++
++class VersionedRefreshSerializer(TokenRefreshSerializer):
++    def validate(self, attrs):
++        token = RefreshToken(attrs['refresh'])
++        user = User.objects.filter(pk=token['user_id']).first()
++        conferir(user, token)
++        return super().validate(attrs)
+diff --git a/core/management/commands/notificar_prazos.py b/core/management/commands/notificar_prazos.py
+new file mode 100644
+--- /dev/null
++++ b/core/management/commands/notificar_prazos.py
+@@ -0,0 +1,11 @@
++from django.core.management.base import BaseCommand
++
++from core.services.notificacoes import prazos
++
++
++class Command(BaseCommand):
++    help = 'Registra alertas de prazo sem duplicá-los. Agendar a cada 5 minutos.'
++
++    def handle(self, *args, **options):
++        prazos()
++        self.stdout.write('Alertas de prazo atualizados.')
+diff --git a/core/migrations/0015_project_creator_membership.py b/core/migrations/0015_project_creator_membership.py
+new file mode 100644
+--- /dev/null
++++ b/core/migrations/0015_project_creator_membership.py
+@@ -0,0 +1,16 @@
++from django.db import migrations
++
++
++def registrar_criadores(apps, schema_editor):
++    Projeto = apps.get_model('core', 'Projeto')
++    Participante = apps.get_model('core', 'ParticipanteProjeto')
++    db = schema_editor.connection.alias
++    for projeto in Projeto.objects.using(db).all().iterator():
++        Participante.objects.using(db).update_or_create(
++            projeto_id=projeto.pk, usuario_id=projeto.criado_por_id, defaults={'papel': 'admin'}
++        )
++
++
++class Migration(migrations.Migration):
++    dependencies = [('core', '0014_projeto_materialapoio_tarefa_comentario_checklist_and_more')]
++    operations = [migrations.RunPython(registrar_criadores, migrations.RunPython.noop)]
+diff --git a/core/migrations/0016_user_token_version_notificacao.py b/core/migrations/0016_user_token_version_notificacao.py
+new file mode 100644
+--- /dev/null
++++ b/core/migrations/0016_user_token_version_notificacao.py
+@@ -0,0 +1,51 @@
++# Generated by Django 5.2.15 on 2026-10-24 04:56
++
++import django.db.models.deletion
++from django.conf import settings
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++    dependencies = [
++        ('core', '0015_project_creator_membership'),
++    ]
++
++    operations = [
++        migrations.AddField(
++            model_name='user',
++            name='token_version',
++            field=models.PositiveIntegerField(default=0),
++        ),
++        migrations.CreateModel(
++            name='Notificacao',
++            fields=[
++                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
++                ('tipo', models.CharField(max_length=40)),
++                ('titulo', models.CharField(max_length=180)),
++                ('mensagem', models.TextField()),
++                ('lida', models.BooleanField(default=False)),
++                ('excluida', models.BooleanField(default=False)),
++                ('criada_em', models.DateTimeField(auto_now_add=True)),
++                ('chave', models.CharField(max_length=255, unique=True)),
++                (
++                    'projeto',
++                    models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='core.projeto'),
++                ),
++                (
++                    'tarefa',
++                    models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='core.tarefa'),
++                ),
++                (
++                    'usuario',
++                    models.ForeignKey(
++                        on_delete=django.db.models.deletion.CASCADE,
++                        related_name='notificacoes',
++                        to=settings.AUTH_USER_MODEL,
++                    ),
++                ),
++            ],
++            options={
++                'ordering': ['-criada_em', '-id'],
++            },
++        ),
++    ]
+diff --git a/core/migrations/0017_tarefa_data_inicio_user_foto.py b/core/migrations/0017_tarefa_data_inicio_user_foto.py
+new file mode 100644
+--- /dev/null
++++ b/core/migrations/0017_tarefa_data_inicio_user_foto.py
+@@ -0,0 +1,22 @@
++# Generated by Django 5.2.15 on 2026-10-24 05:57
++
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++    dependencies = [
++        ('core', '0016_user_token_version_notificacao'),
++    ]
++
++    operations = [
++        migrations.AddField(
++            model_name='tarefa',
++            name='data_inicio',
++            field=models.DateField(blank=True, null=True, verbose_name='Data de início'),
++        ),
++        migrations.AddField(
++            model_name='user',
++            name='foto',
++            field=models.ImageField(blank=True, null=True, upload_to='usuarios/avatares/'),
++        ),
++    ]
+diff --git a/core/models/notificacao.py b/core/models/notificacao.py
+new file mode 100644
+--- /dev/null
++++ b/core/models/notificacao.py
+@@ -0,0 +1,18 @@
++from django.conf import settings
++from django.db import models
++
++
++class Notificacao(models.Model):
++    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notificacoes')
++    projeto = models.ForeignKey('core.Projeto', null=True, on_delete=models.SET_NULL)
++    tarefa = models.ForeignKey('core.Tarefa', null=True, on_delete=models.SET_NULL)
++    tipo = models.CharField(max_length=40)
++    titulo = models.CharField(max_length=180)
++    mensagem = models.TextField()
++    lida = models.BooleanField(default=False)
++    excluida = models.BooleanField(default=False)
++    criada_em = models.DateTimeField(auto_now_add=True)
++    chave = models.CharField(max_length=255, unique=True)
++
++    class Meta:
++        ordering = ['-criada_em', '-id']
+diff --git a/core/project_permissions.py b/core/project_permissions.py
+new file mode 100644
+--- /dev/null
++++ b/core/project_permissions.py
+@@ -0,0 +1,59 @@
++from rest_framework.permissions import SAFE_METHODS, BasePermission
++
++from core.models import Projeto
++
++
++def projetos_visiveis(user):
++    return Projeto.objects.filter(participantes__usuario=user).distinct()
++
++
++def participa(projeto, user):
++    return projeto.participantes.filter(usuario=user).exists()
++
++
++def administra(projeto, user):
++    return projeto.participantes.filter(usuario=user, papel='admin').exists()
++
++
++def edita_tarefa(tarefa, user):
++    return participa(tarefa.projeto, user) and (administra(tarefa.projeto, user) or tarefa.responsavel_id == user.pk)
++
++
++class ProjetoPermission(BasePermission):
++    def has_object_permission(self, request, view, obj):
++        projeto = obj if isinstance(obj, Projeto) else obj.projeto
++        return participa(projeto, request.user) if request.method in SAFE_METHODS else administra(projeto, request.user)
++
++
++class TarefaPermission(BasePermission):
++    def has_object_permission(self, request, view, obj):
++        return (
++            participa(obj.projeto, request.user) if request.method in SAFE_METHODS else edita_tarefa(obj, request.user)
++        )
++
++
++class ChecklistPermission(BasePermission):
++    def has_object_permission(self, request, view, obj):
++        return (
++            participa(obj.tarefa.projeto, request.user)
++            if request.method in SAFE_METHODS
++            else edita_tarefa(obj.tarefa, request.user)
++        )
++
++
++class ComentarioPermission(BasePermission):
++    def has_object_permission(self, request, view, obj):
++        if request.method in SAFE_METHODS:
++            return participa(obj.tarefa.projeto, request.user)
++        return edita_tarefa(obj.tarefa, request.user) and (
++            obj.autor_id == request.user.pk or administra(obj.tarefa.projeto, request.user)
++        )
++
++
++class MaterialPermission(BasePermission):
++    def has_object_permission(self, request, view, obj):
++        if request.method in SAFE_METHODS:
++            return participa(obj.projeto, request.user)
++        return participa(obj.projeto, request.user) and (
++            obj.criador_id == request.user.pk or administra(obj.projeto, request.user)
++        )
+diff --git a/core/services/notificacoes.py b/core/services/notificacoes.py
+new file mode 100644
+--- /dev/null
++++ b/core/services/notificacoes.py
+@@ -0,0 +1,45 @@
++from datetime import timedelta
++from uuid import uuid4
++
++from django.utils import timezone
++
++from core.models import Notificacao, Tarefa
++
++
++def notificar(usuario_id, tipo, mensagem, projeto, tarefa=None, chave=None):
++    return Notificacao.objects.get_or_create(
++        chave=chave or str(uuid4()),
++        defaults=dict(
++            usuario_id=usuario_id,
++            tipo=tipo,
++            titulo=mensagem.split(':')[0][:180],
++            mensagem=mensagem,
++            projeto=projeto,
++            tarefa=tarefa,
++        ),
++    )
++
++
++def prazos(usuario=None):
++    agora = timezone.now()
++    tarefas = (
++        Tarefa.objects
++        .filter(prazo__lte=agora + timedelta(days=1), responsavel__isnull=False)
++        .exclude(situacao='concluida')
++        .select_related('projeto')
++    )
++    if usuario:
++        tarefas = tarefas.filter(responsavel=usuario)
++    for tarefa in tarefas:
++        if not tarefa.projeto.participantes.filter(usuario_id=tarefa.responsavel_id).exists():
++            continue
++        tipo = 'atraso' if tarefa.prazo < agora else 'prazo'
++        texto = 'está atrasada' if tipo == 'atraso' else 'vence nas próximas 24 horas'
++        notificar(
++            tarefa.responsavel_id,
++            tipo,
++            f'A tarefa {tarefa.titulo} {texto}, no projeto {tarefa.projeto.nome}.',
++            tarefa.projeto,
++            tarefa,
++            f'{tipo}:{tarefa.pk}:{tarefa.responsavel_id}:{tarefa.prazo.isoformat()}',
++        )
+diff --git a/core/signals.py b/core/signals.py
+new file mode 100644
+--- /dev/null
++++ b/core/signals.py
+@@ -0,0 +1,79 @@
++from django.db.models.signals import post_delete, post_save, pre_save
++from django.dispatch import receiver
++
++from core.models import ParticipanteProjeto, Tarefa
++from core.services.notificacoes import notificar
++
++
++@receiver(pre_save, sender=Tarefa)
++def antes_tarefa(sender, instance, **kwargs):
++    instance._antes = (
++        sender.objects
++        .filter(pk=instance.pk)
++        .values('titulo', 'descricao', 'prioridade', 'data_inicio', 'prazo', 'situacao', 'responsavel_id')
++        .first()
++    )
++
++
++@receiver(post_save, sender=Tarefa)
++def tarefa_salva(sender, instance, created, **kwargs):
++    anterior = getattr(instance, '_antes', None)
++    projeto = instance.projeto
++    if instance.responsavel_id:
++        atribuida = created or not anterior or anterior['responsavel_id'] != instance.responsavel_id
++        alterada = anterior and any(anterior[k] != getattr(instance, k) for k in anterior)
++        if atribuida or alterada:
++            tipo = 'atribuicao' if atribuida else 'alteracao'
++            texto = 'Você recebeu uma nova tarefa' if atribuida else 'Sua tarefa foi atualizada'
++            notificar(
++                instance.responsavel_id,
++                tipo,
++                f'{texto}: {instance.titulo}, no projeto {projeto.nome}.',
++                projeto,
++                instance,
++            )
++    if instance.situacao == 'concluida' and (created or anterior and anterior['situacao'] != 'concluida'):
++        for usuario_id in projeto.participantes.filter(papel='admin').values_list('usuario_id', flat=True):
++            notificar(
++                usuario_id,
++                'conclusao',
++                f'Tarefa concluída: {instance.titulo}, no projeto {projeto.nome}.',
++                projeto,
++                instance,
++            )
++
++
++@receiver(pre_save, sender=ParticipanteProjeto)
++def antes_participacao(sender, instance, **kwargs):
++    instance._papel_antes = sender.objects.filter(pk=instance.pk).values_list('papel', flat=True).first()
++
++
++@receiver(post_save, sender=ParticipanteProjeto)
++def participacao_salva(sender, instance, created, **kwargs):
++    anterior = getattr(instance, '_papel_antes', None)
++    if created:
++        notificar(
++            instance.usuario_id,
++            'participacao',
++            f'Você foi adicionado ao projeto {instance.projeto.nome}.',
++            instance.projeto,
++        )
++    elif anterior != instance.papel:
++        papel = 'administrador' if instance.papel == 'admin' else 'participante'
++        notificar(
++            instance.usuario_id,
++            'permissao',
++            f'Sua função no projeto {instance.projeto.nome} foi alterada para {papel}.',
++            instance.projeto,
++        )
++
++
++@receiver(post_delete, sender=ParticipanteProjeto)
++def participacao_removida(sender, instance, **kwargs):
++    origin = kwargs.get('origin')
++    if not isinstance(origin, ParticipanteProjeto) and getattr(origin, 'model', None) is not ParticipanteProjeto:
++        return
++    if instance.projeto_id and instance.projeto.__class__.objects.filter(pk=instance.projeto_id).exists():
++        notificar(
++            instance.usuario_id, 'remocao', f'Você foi removido do projeto {instance.projeto.nome}.', instance.projeto
++        )
+diff --git a/core/tests/test_profile_planning.py b/core/tests/test_profile_planning.py
+new file mode 100644
+--- /dev/null
++++ b/core/tests/test_profile_planning.py
+@@ -0,0 +1,115 @@
++from datetime import timedelta
++from io import BytesIO
++from tempfile import TemporaryDirectory
++
++from django.core.files.uploadedfile import SimpleUploadedFile
++from django.test import override_settings
++from django.utils import timezone
++from PIL import Image
++from rest_framework.test import APITestCase
++
++from core.models import ParticipanteProjeto, Projeto, Tarefa, User
++
++
++class ProfilePlanningTests(APITestCase):
++    def setUp(self):
++        self.media = TemporaryDirectory()
++        self.settings = override_settings(MEDIA_ROOT=self.media.name)
++        self.settings.enable()
++        self.addCleanup(self.settings.disable)
++        self.addCleanup(self.media.cleanup)
++        self.user = User.objects.create_user('planning@test.example', 'OriginalPassword123!')
++        self.other = User.objects.create_user('other-planning@test.example', 'OriginalPassword123!')
++        self.client.force_authenticate(self.user)
++
++    def image(self, format='PNG'):
++        stream = BytesIO()
++        Image.new('RGB', (180, 120), color='green').save(stream, format=format)
++        return SimpleUploadedFile('avatar.' + format.lower(), stream.getvalue(), content_type='image/' + format.lower())
++
++    def test_registration_requires_valid_birthday_but_old_accounts_can_login(self):
++        self.client.force_authenticate(None)
++        data = {'name': 'New', 'email': 'new-birthday@test.example', 'password': 'OriginalPassword123!'}
++        self.assertEqual(self.client.post('/api/registro/', data, format='json').status_code, 400)
++        data['data_nascimento'] = (timezone.localdate() + timedelta(days=1)).isoformat()
++        self.assertEqual(self.client.post('/api/registro/', data, format='json').status_code, 400)
++        data['data_nascimento'] = '2000-02-30'
++        self.assertEqual(self.client.post('/api/registro/', data, format='json').status_code, 400)
++        data['data_nascimento'] = '2000-02-29'
++        result = self.client.post('/api/registro/', data, format='json')
++        self.assertEqual(result.status_code, 201, result.data)
++        self.assertEqual(User.objects.get(email=data['email']).data_nascimento.isoformat(), '2000-02-29')
++        result = self.client.post(
++            '/api/token/', {'email': self.user.email, 'password': 'OriginalPassword123!'}, format='json'
++        )
++        self.assertEqual(result.status_code, 200)
++
++    def test_photo_upload_me_url_replacement_and_removal(self):
++        url = f'/api/usuarios/{self.user.pk}/'
++        result = self.client.patch(url, {'foto': self.image()}, format='multipart')
++        self.assertEqual(result.status_code, 200, result.data)
++        self.assertTrue(result.data['foto'].startswith('http://testserver/media/'))
++        self.user.refresh_from_db()
++        first_name = self.user.foto.name
++        self.assertTrue(self.user.foto.storage.exists(first_name))
++        with Image.open(self.user.foto) as saved:
++            self.assertEqual(saved.format, 'JPEG')
++        self.user.foto.close()
++        self.client.force_authenticate(self.user)
++        result = self.client.get('/api/usuarios/me/')
++        self.assertTrue(result.data['foto'].startswith('http://testserver/media/'))
++        with self.captureOnCommitCallbacks(execute=True):
++            result = self.client.patch(url, {'foto': self.image('WEBP')}, format='multipart')
++        self.assertEqual(result.status_code, 200)
++        self.assertFalse(self.user.foto.storage.exists(first_name))
++        self.user.refresh_from_db()
++        second_name = self.user.foto.name
++        with self.captureOnCommitCallbacks(execute=True):
++            result = self.client.patch(url, {'foto': None}, format='json')
++        self.assertEqual(result.status_code, 200)
++        self.assertIsNone(result.data['foto'])
++        self.assertFalse(self.user.foto.storage.exists(second_name))
++
++    def test_invalid_oversized_and_unsupported_images_are_rejected(self):
++        url = f'/api/usuarios/{self.user.pk}/'
++        fake = SimpleUploadedFile('fake.jpg', b'not-an-image', content_type='image/jpeg')
++        self.assertEqual(self.client.patch(url, {'foto': fake}, format='multipart').status_code, 400)
++        self.assertEqual(self.client.patch(url, {'foto': self.image('GIF')}, format='multipart').status_code, 400)
++        large = self.image()
++        content = large.read() + b'0' * (5 * 1024 * 1024)
++        large = SimpleUploadedFile('large.png', content, content_type='image/png')
++        self.assertEqual(self.client.patch(url, {'foto': large}, format='multipart').status_code, 400)
++
++    def test_photo_and_birthday_are_editable_only_by_owner(self):
++        self.client.force_authenticate(self.other)
++        response = self.client.patch(f'/api/usuarios/{self.user.pk}/', {'foto': self.image()}, format='multipart')
++        self.assertEqual(response.status_code, 404)
++        response = self.client.patch(f'/api/usuarios/{self.user.pk}/', {'data_nascimento': '2000-01-01'}, format='json')
++        self.assertEqual(response.status_code, 404)
++        result = self.client.get('/api/usuarios/')
++        self.assertTrue(all('data_nascimento' not in u for u in result.data['results']))
++
++    def test_start_date_persists_and_partial_edits_validate_both_dates(self):
++        result = self.client.post('/api/projetos/', {'nome': 'Planning', 'descricao': 'Real'}, format='json')
++        project = Projeto.objects.get(pk=result.data['id'])
++        ParticipanteProjeto.objects.create(projeto=project, usuario=self.other)
++        data = {
++            'projeto': project.pk,
++            'titulo': 'Dates',
++            'descricao': 'Real',
++            'prioridade': 2,
++            'responsavel': self.other.pk,
++            'data_inicio': '2026-10-10',
++            'prazo': '2026-10-15T23:59:59-03:00',
++        }
++        result = self.client.post('/api/tarefas/', data, format='json')
++        self.assertEqual(result.status_code, 201, result.data)
++        self.assertEqual(result.data['data_inicio'], '2026-10-10')
++        url = f'/api/tarefas/{result.data["id"]}/'
++        self.assertEqual(self.client.patch(url, {'data_inicio': '2026-10-16'}, format='json').status_code, 400)
++        self.assertEqual(self.client.patch(url, {'prazo': '2026-10-09T23:59:59-03:00'}, format='json').status_code, 400)
++        self.client.force_authenticate(self.other)
++        result = self.client.patch(url, {'data_inicio': '2026-10-12'}, format='json')
++        self.assertEqual(result.status_code, 200)
++        self.assertEqual(Tarefa.objects.get(pk=result.data['id']).data_inicio.isoformat(), '2026-10-12')
++        self.assertEqual(self.client.patch(url, {'data_inicio': None, 'prazo': None}, format='json').status_code, 200)
+diff --git a/core/tests/test_project_kanban.py b/core/tests/test_project_kanban.py
+new file mode 100644
+--- /dev/null
++++ b/core/tests/test_project_kanban.py
+@@ -0,0 +1,275 @@
++from django.db import connection
++from django.db.migrations.executor import MigrationExecutor
++from django.test import TransactionTestCase
++from rest_framework.test import APITestCase
++
++from core.models import Checklist, Comentario, MaterialApoio, ParticipanteProjeto, Projeto, Tarefa, User
++
++
++class ProjectKanbanTests(APITestCase):
++    def setUp(self):
++        self.owner = User.objects.create_user('owner@example.test', 'Password123!')
++        self.member = User.objects.create_user('member@example.test', 'Password123!')
++        self.other = User.objects.create_user('other@example.test', 'Password123!')
++        self.client.force_authenticate(self.owner)
++        response = self.client.post(
++            '/api/projetos/', {'nome': 'Projeto privado', 'descricao': 'Descrição'}, format='json'
++        )
++        self.assertEqual(response.status_code, 201, response.data)
++        self.project = Projeto.objects.get(pk=response.data['id'])
++        ParticipanteProjeto.objects.create(projeto=self.project, usuario=self.member)
++        self.task = Tarefa.objects.create(
++            projeto=self.project,
++            criador=self.owner,
++            responsavel=self.member,
++            titulo='Task',
++            descricao='Real',
++            prioridade=2,
++        )
++        self.project_url = f'/api/projetos/{self.project.pk}/'
++        self.task_url = f'/api/tarefas/{self.task.pk}/'
++
++    def test_creator_is_automatic_and_membership_is_atomic(self):
++        member = ParticipanteProjeto.objects.get(projeto=self.project, usuario=self.owner)
++        self.assertEqual(member.papel, 'admin')
++        response = self.client.post(
++            '/api/projetos/', {'nome': 'Auto', 'descricao': 'Real', 'criado_por': self.other.pk}, format='json'
++        )
++        self.assertEqual(response.status_code, 201)
++        self.assertEqual(response.data['criado_por'], self.owner.pk)
++        self.assertTrue(
++            ParticipanteProjeto.objects.filter(
++                projeto_id=response.data['id'], usuario=self.owner, papel='admin'
++            ).exists()
++        )
++
++    def test_outsider_cannot_list_read_or_modify_private_data(self):
++        Checklist.objects.create(tarefa=self.task, descricao='Check')
++        Comentario.objects.create(tarefa=self.task, autor=self.owner, conteudo='Private')
++        MaterialApoio.objects.create(
++            projeto=self.project, criador=self.owner, titulo='Material', url='https://example.com'
++        )
++        self.client.force_authenticate(self.other)
++        for endpoint in [
++            'projetos',
++            'tarefas',
++            'participantes-projeto',
++            'checklists',
++            'comentarios',
++            'materiais-apoio',
++        ]:
++            response = self.client.get(f'/api/{endpoint}/')
++            self.assertEqual(response.data['results'], [], endpoint)
++        self.assertEqual(self.client.get(self.project_url).status_code, 404)
++        self.assertEqual(self.client.patch(self.project_url, {'nome': 'No'}, format='json').status_code, 404)
++        self.assertEqual(self.client.delete(self.task_url).status_code, 404)
++
++    def test_participant_reads_project_but_cannot_administer_it(self):
++        self.client.force_authenticate(self.member)
++        self.assertEqual(self.client.get(self.project_url).status_code, 200)
++        self.assertEqual(self.client.get(self.task_url).status_code, 200)
++        self.assertEqual(self.client.patch(self.project_url, {'nome': 'No'}, format='json').status_code, 403)
++        self.assertEqual(self.client.delete(self.project_url).status_code, 403)
++        self.assertEqual(
++            self.client.post(
++                '/api/participantes-projeto/', {'projeto': self.project.pk, 'usuario': self.other.pk}, format='json'
++            ).status_code,
++            403,
++        )
++        self.assertEqual(
++            self.client.post(
++                '/api/tarefas/',
++                {'projeto': self.project.pk, 'titulo': 'No', 'descricao': 'No', 'prioridade': 1},
++                format='json',
++            ).status_code,
++            403,
++        )
++
++    def test_responsible_can_edit_only_assigned_tasks(self):
++        other_task = Tarefa.objects.create(
++            projeto=self.project,
++            criador=self.owner,
++            responsavel=self.owner,
++            titulo='Other',
++            descricao='Real',
++            prioridade=1,
++        )
++        self.client.force_authenticate(self.member)
++        self.assertEqual(
++            self.client.patch(
++                self.task_url, {'situacao': 'andamento', 'descricao': 'Edited'}, format='json'
++            ).status_code,
++            200,
++        )
++        self.assertEqual(
++            self.client.patch(f'/api/tarefas/{other_task.pk}/', {'situacao': 'andamento'}, format='json').status_code,
++            403,
++        )
++        self.assertEqual(
++            self.client.patch(self.task_url, {'responsavel': self.owner.pk}, format='json').status_code, 403
++        )
++
++    def test_owner_assignment_is_preserved_on_create_and_nonmembers_rejected(self):
++        data = {
++            'projeto': self.project.pk,
++            'titulo': 'Created',
++            'descricao': 'Real',
++            'prioridade': 3,
++            'responsavel': self.member.pk,
++        }
++        response = self.client.post('/api/tarefas/', data, format='json')
++        self.assertEqual(response.status_code, 201, response.data)
++        self.assertEqual(response.data['responsavel'], self.member.pk)
++        data['responsavel'] = self.other.pk
++        self.assertEqual(self.client.post('/api/tarefas/', data, format='json').status_code, 400)
++
++    def test_completion_reopen_and_owner_edits_unassigned_tasks(self):
++        response = self.client.patch(self.task_url, {'situacao': 'concluida'}, format='json')
++        self.assertEqual(response.status_code, 200)
++        self.assertTrue(response.data['concluida_em'])
++        response = self.client.patch(self.task_url, {'situacao': 'aberta', 'responsavel': None}, format='json')
++        self.assertEqual(response.status_code, 200)
++        self.assertIsNone(response.data['concluida_em'])
++        self.assertTrue(response.data['bloqueada'])
++        self.assertEqual(
++            self.client.patch(self.task_url, {'descricao': 'Owner can edit'}, format='json').status_code, 200
++        )
++
++    def test_task_cannot_move_to_another_project(self):
++        other = Projeto.objects.create(nome='Other', descricao='Real', criado_por=self.owner)
++        self.assertEqual(self.client.patch(self.task_url, {'projeto': other.pk}, format='json').status_code, 400)
++
++    def test_last_admin_cannot_be_removed_or_demoted(self):
++        membership = ParticipanteProjeto.objects.get(projeto=self.project, usuario=self.owner)
++        url = f'/api/participantes-projeto/{membership.pk}/'
++        self.assertEqual(self.client.delete(url).status_code, 400)
++        self.assertEqual(self.client.patch(url, {'papel': 'participante'}, format='json').status_code, 400)
++        self.assertEqual(self.project.participantes.filter(papel='admin').count(), 1)
++
++    def test_promoted_admin_has_equal_rights_and_can_demote_creator(self):
++        member = ParticipanteProjeto.objects.get(projeto=self.project, usuario=self.member)
++        response = self.client.patch(f'/api/participantes-projeto/{member.pk}/', {'papel': 'admin'}, format='json')
++        self.assertEqual(response.status_code, 200, response.data)
++        self.client.force_authenticate(self.member)
++        self.assertEqual(self.client.patch(self.project_url, {'nome': 'Renamed'}, format='json').status_code, 200)
++        self.task.responsavel = self.owner
++        self.task.save()
++        self.assertEqual(self.client.patch(self.task_url, {'titulo': 'Admin edited'}, format='json').status_code, 200)
++        owner = ParticipanteProjeto.objects.get(projeto=self.project, usuario=self.owner)
++        self.assertEqual(
++            self.client.patch(
++                f'/api/participantes-projeto/{owner.pk}/', {'papel': 'participante'}, format='json'
++            ).status_code,
++            200,
++        )
++        self.client.force_authenticate(self.owner)
++        self.assertEqual(self.client.patch(self.project_url, {'nome': 'Forbidden'}, format='json').status_code, 403)
++        self.assertEqual(
++            self.client.patch(f'/api/participantes-projeto/{owner.pk}/', {'papel': 'admin'}, format='json').status_code,
++            403,
++        )
++        self.client.force_authenticate(self.member)
++        self.assertEqual(self.client.delete(f'/api/participantes-projeto/{owner.pk}/').status_code, 204)
++        self.client.force_authenticate(self.owner)
++        self.assertEqual(self.client.get(self.project_url).status_code, 404)
++
++    def test_roles_are_specific_to_each_project(self):
++        other = self.client.post('/api/projetos/', {'nome': 'Second', 'descricao': 'Real'}, format='json')
++        member = ParticipanteProjeto.objects.get(projeto=self.project, usuario=self.member)
++        self.client.patch(f'/api/participantes-projeto/{member.pk}/', {'papel': 'admin'}, format='json')
++        self.client.force_authenticate(self.member)
++        self.assertEqual(self.client.get(f'/api/projetos/{other.data["id"]}/').status_code, 404)
++
++    def test_checklist_scoped_to_editable_task(self):
++        self.client.force_authenticate(self.member)
++        response = self.client.post('/api/checklists/', {'tarefa': self.task.pk, 'descricao': 'Check'}, format='json')
++        self.assertEqual(response.status_code, 201)
++        item_id = response.data['id']
++        other_task = Tarefa.objects.create(
++            projeto=self.project,
++            criador=self.owner,
++            responsavel=self.owner,
++            titulo='Other',
++            descricao='Real',
++            prioridade=1,
++        )
++        self.assertEqual(
++            self.client.post(
++                '/api/checklists/', {'tarefa': other_task.pk, 'descricao': 'No'}, format='json'
++            ).status_code,
++            403,
++        )
++        self.assertEqual(
++            self.client.patch(f'/api/checklists/{item_id}/', {'tarefa': other_task.pk}, format='json').status_code, 400
++        )
++        self.assertEqual(
++            self.client.patch(f'/api/checklists/{item_id}/', {'concluido': True}, format='json').status_code, 200
++        )
++
++    def test_comment_author_cannot_be_spoofed(self):
++        self.client.force_authenticate(self.member)
++        response = self.client.post(
++            '/api/comentarios/', {'tarefa': self.task.pk, 'conteudo': 'Real', 'autor': self.other.pk}, format='json'
++        )
++        self.assertEqual(response.status_code, 201)
++        self.assertEqual(response.data['autor'], self.member.pk)
++        self.client.force_authenticate(self.other)
++        self.assertEqual(self.client.get(f'/api/comentarios/{response.data["id"]}/').status_code, 404)
++
++    def test_material_creator_cannot_be_spoofed(self):
++        self.client.force_authenticate(self.member)
++        response = self.client.post(
++            '/api/materiais-apoio/',
++            {'projeto': self.project.pk, 'criador': self.owner.pk, 'titulo': 'Material', 'url': 'https://example.com'},
++            format='json',
++        )
++        self.assertEqual(response.status_code, 201)
++        self.assertEqual(response.data['criador'], self.member.pk)
++
++    def test_user_cannot_elevate_privileges_or_edit_another_account(self):
++        response = self.client.patch(
++            f'/api/usuarios/{self.owner.pk}/', {'is_superuser': True, 'is_staff': True}, format='json'
++        )
++        self.assertEqual(response.status_code, 200)
++        self.owner.refresh_from_db()
++        self.assertFalse(self.owner.is_superuser)
++        self.assertFalse(self.owner.is_staff)
++        self.assertEqual(
++            self.client.patch(f'/api/usuarios/{self.other.pk}/', {'name': 'No'}, format='json').status_code, 404
++        )
++        self.assertEqual(self.client.delete(f'/api/usuarios/{self.other.pk}/').status_code, 404)
++
++    def test_project_filter_and_pagination(self):
++        for i in range(12):
++            Tarefa.objects.create(
++                projeto=self.project, criador=self.owner, titulo=f'Task {i}', descricao='Real', prioridade=1
++            )
++        other = Projeto.objects.create(nome='Other', descricao='Real', criado_por=self.owner)
++        Tarefa.objects.create(projeto=other, criador=self.owner, titulo='Other', descricao='Real', prioridade=1)
++        response = self.client.get('/api/tarefas/', {'projeto': self.project.pk})
++        self.assertEqual(response.data['total_pages'], 2)
++        self.assertTrue(all(t['projeto'] == self.project.pk for t in response.data['results']))
++        self.assertEqual(self.client.get('/api/tarefas/', {'projeto': 'bad'}).status_code, 400)
++
++
++class ProjectAdminMigrationTests(TransactionTestCase):
++    def test_existing_project_gets_creator_membership(self):
++        executor = MigrationExecutor(connection)
++        before = ('core', '0014_projeto_materialapoio_tarefa_comentario_checklist_and_more')
++        after = ('core', '0015_project_creator_membership')
++        executor.migrate([before])
++        try:
++            apps = executor.loader.project_state([before]).apps
++            users = apps.get_model('core', 'User')
++            owner = users.objects.create(email='migration-owner@test.example')
++            other = users.objects.create(email='migration-other@test.example')
++            project = apps.get_model('core', 'Projeto').objects.create(nome='Old', descricao='Real', criado_por=owner)
++            apps.get_model('core', 'ParticipanteProjeto').objects.create(projeto=project, usuario=other, papel='admin')
++            executor = MigrationExecutor(connection)
++            executor.migrate([after])
++            apps = executor.loader.project_state([after]).apps
++            members = apps.get_model('core', 'ParticipanteProjeto')
++            self.assertEqual(members.objects.get(projeto_id=project.pk, usuario_id=owner.pk).papel, 'admin')
++            self.assertEqual(members.objects.get(projeto_id=project.pk, usuario_id=other.pk).papel, 'admin')
++        finally:
++            MigrationExecutor(connection).migrate([('core', '0017_tarefa_data_inicio_user_foto')])
+diff --git a/core/tests/test_workspace.py b/core/tests/test_workspace.py
+new file mode 100644
+--- /dev/null
++++ b/core/tests/test_workspace.py
+@@ -0,0 +1,158 @@
++from datetime import timedelta
++
++from django.utils import timezone
++from rest_framework.test import APITestCase
++
++from core.models import Notificacao, ParticipanteProjeto, Projeto, Tarefa, User
++from core.services.notificacoes import prazos
++
++
++class WorkspaceTests(APITestCase):
++    def setUp(self):
++        self.admin = User.objects.create_user('admin@workspace.test', 'OriginalPassword123!')
++        self.member = User.objects.create_user('member@workspace.test', 'OriginalPassword123!')
++        self.other = User.objects.create_user('other@workspace.test', 'OriginalPassword123!')
++        self.client.force_authenticate(self.admin)
++        result = self.client.post('/api/projetos/', {'nome': 'Kando', 'descricao': 'Real'}, format='json')
++        self.project = Projeto.objects.get(pk=result.data['id'])
++        ParticipanteProjeto.objects.create(projeto=self.project, usuario=self.member)
++
++    def task(self, **kwargs):
++        return Tarefa.objects.create(
++            projeto=self.project,
++            criador=self.admin,
++            responsavel=self.member,
++            titulo='API',
++            descricao='Real',
++            prioridade=2,
++            **kwargs,
++        )
++
++    def test_notifications_are_private_and_server_generated(self):
++        task = self.task()
++        self.assertTrue(Notificacao.objects.filter(usuario=self.member, tipo='atribuicao', tarefa=task).exists())
++        task.descricao = 'Updated'
++        task.save()
++        self.assertEqual(Notificacao.objects.filter(usuario=self.member, tipo='alteracao').count(), 1)
++        task.save()
++        self.assertEqual(Notificacao.objects.filter(usuario=self.member, tipo='alteracao').count(), 1)
++        self.client.force_authenticate(self.other)
++        result = self.client.get('/api/notificacoes/')
++        self.assertEqual(result.data['results'], [])
++        notification = Notificacao.objects.filter(usuario=self.member).first()
++        self.assertEqual(
++            self.client.patch(f'/api/notificacoes/{notification.pk}/', {'lida': True}, format='json').status_code, 404
++        )
++        self.assertEqual(
++            self.client.post('/api/notificacoes/', {'usuario': self.other.pk}, format='json').status_code, 405
++        )
++
++    def test_notification_read_delete_and_all_read(self):
++        self.task()
++        self.client.force_authenticate(self.member)
++        notification = Notificacao.objects.filter(usuario=self.member).first()
++        url = f'/api/notificacoes/{notification.pk}/'
++        self.assertEqual(self.client.patch(url, {'lida': True, 'mensagem': 'Forged'}, format='json').status_code, 200)
++        notification.refresh_from_db()
++        self.assertTrue(notification.lida)
++        self.assertNotEqual(notification.mensagem, 'Forged')
++        self.assertEqual(self.client.post('/api/notificacoes/ler-todas/').status_code, 200)
++        self.assertFalse(Notificacao.objects.filter(usuario=self.member, lida=False).exists())
++        self.assertEqual(self.client.delete(url).status_code, 204)
++
++    def test_deadline_alerts_deduplicate_and_ignore_completed(self):
++        near = self.task(prazo=timezone.now() + timedelta(hours=10))
++        late = self.task(prazo=timezone.now() - timedelta(days=1))
++        self.task(prazo=timezone.now() - timedelta(days=1), situacao='concluida')
++        prazos()
++        prazos()
++        self.assertEqual(Notificacao.objects.filter(tipo='prazo', tarefa=near).count(), 1)
++        self.assertEqual(Notificacao.objects.filter(tipo='atraso', tarefa=late).count(), 1)
++        self.assertEqual(Notificacao.objects.filter(tipo='atraso').count(), 1)
++        notification = Notificacao.objects.get(tipo='atraso', tarefa=late)
++        self.client.force_authenticate(self.member)
++        self.client.delete(f'/api/notificacoes/{notification.pk}/')
++        prazos()
++        self.assertFalse(Notificacao.objects.filter(tipo='atraso', tarefa=late, excluida=False).exists())
++
++    def test_membership_role_removal_and_completion_notifications(self):
++        membership = ParticipanteProjeto.objects.get(projeto=self.project, usuario=self.member)
++        self.client.patch(f'/api/participantes-projeto/{membership.pk}/', {'papel': 'admin'}, format='json')
++        self.assertTrue(Notificacao.objects.filter(usuario=self.member, tipo='permissao').exists())
++        task = self.task()
++        self.client.patch(f'/api/tarefas/{task.pk}/', {'situacao': 'concluida'}, format='json')
++        self.assertEqual(Notificacao.objects.filter(tipo='conclusao', tarefa=task).count(), 2)
++        self.client.delete(f'/api/participantes-projeto/{membership.pk}/')
++        self.assertTrue(Notificacao.objects.filter(usuario=self.member, tipo='remocao').exists())
++
++    def test_profile_fields_and_private_birthday(self):
++        response = self.client.patch(
++            f'/api/usuarios/{self.admin.pk}/',
++            {'name': 'New Name', 'data_nascimento': '2000-01-01', 'token_version': 500},
++            format='json',
++        )
++        self.assertEqual(response.status_code, 200)
++        self.admin.refresh_from_db()
++        self.client.force_authenticate(self.admin)
++        self.assertEqual(self.client.get('/api/usuarios/me/').data['data_nascimento'], '2000-01-01')
++        self.admin.refresh_from_db()
++        self.assertEqual(self.admin.token_version, 0)
++        self.client.force_authenticate(self.other)
++        result = self.client.get('/api/usuarios/')
++        self.assertTrue(all('data_nascimento' not in u for u in result.data['results']))
++
++    def test_password_validation_and_revokes_access_and_refresh(self):
++        self.client.force_authenticate(None)
++        tokens = self.client.post(
++            '/api/token/', {'email': self.admin.email, 'password': 'OriginalPassword123!'}, format='json'
++        ).data
++        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + tokens['access'])
++        endpoint = '/api/usuarios/alterar-senha/'
++        data = {
++            'senha_atual': 'wrong',
++            'nova_senha': 'DifferentPassword456!',
++            'confirmar_senha': 'DifferentPassword456!',
++        }
++        self.assertEqual(self.client.post(endpoint, data, format='json').status_code, 400)
++        data['senha_atual'] = 'OriginalPassword123!'
++        data['confirmar_senha'] = 'mismatch'
++        self.assertEqual(self.client.post(endpoint, data, format='json').status_code, 400)
++        data['confirmar_senha'] = data['nova_senha'] = '123'
++        self.assertEqual(self.client.post(endpoint, data, format='json').status_code, 400)
++        data['confirmar_senha'] = data['nova_senha'] = 'DifferentPassword456!'
++        response = self.client.post(endpoint, data, format='json')
++        self.assertEqual(response.status_code, 200, response.data)
++        self.assertEqual(self.client.get('/api/usuarios/me/').status_code, 401)
++        self.client.credentials()
++        self.assertEqual(
++            self.client.post('/api/token/refresh/', {'refresh': tokens['refresh']}, format='json').status_code, 401
++        )
++        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + response.data['access'])
++        self.assertEqual(self.client.get('/api/usuarios/me/').status_code, 200)
++        self.admin.refresh_from_db()
++        self.assertTrue(self.admin.check_password('DifferentPassword456!'))
++        self.assertNotEqual(self.admin.password, 'DifferentPassword456!')
++
++    def test_account_deletion_cannot_remove_last_administrator(self):
++        response = self.client.delete(f'/api/usuarios/{self.admin.pk}/')
++        self.assertEqual(response.status_code, 400)
++        self.assertTrue(
++            ParticipanteProjeto.objects.filter(usuario=self.admin, projeto=self.project, papel='admin').exists()
++        )
++
++    def test_participant_cannot_comment_on_someone_elses_task(self):
++        task = self.task()
++        task.responsavel = self.admin
++        task.save()
++        self.client.force_authenticate(self.member)
++        response = self.client.post('/api/comentarios/', {'tarefa': task.pk, 'conteudo': 'Forbidden'}, format='json')
++        self.assertEqual(response.status_code, 403)
++
++    def test_project_deletion_with_notifications_and_tasks_has_no_orphans(self):
++        self.task()
++        self.assertTrue(Notificacao.objects.filter(projeto=self.project).exists())
++        response = self.client.delete(f'/api/projetos/{self.project.pk}/')
++        self.assertEqual(response.status_code, 204)
++        self.assertFalse(Projeto.objects.filter(pk=self.project.pk).exists())
++        self.assertFalse(Tarefa.objects.filter(projeto_id=self.project.pk).exists())
++        self.assertTrue(all(n.projeto_id is None and n.tarefa_id is None for n in Notificacao.objects.all()))
+diff --git a/core/views/notificacao.py b/core/views/notificacao.py
+new file mode 100644
+--- /dev/null
++++ b/core/views/notificacao.py
+@@ -0,0 +1,42 @@
++from rest_framework import serializers
++from rest_framework.decorators import action
++from rest_framework.permissions import IsAuthenticated
++from rest_framework.response import Response
++from rest_framework.viewsets import ModelViewSet
++
++from core.models import Notificacao
++from core.services.notificacoes import prazos
++
++
++class NotificacaoSerializer(serializers.ModelSerializer):
++    class Meta:
++        model = Notificacao
++        fields = ['id', 'projeto', 'tarefa', 'tipo', 'titulo', 'mensagem', 'lida', 'criada_em']
++        read_only_fields = ['id', 'projeto', 'tarefa', 'tipo', 'titulo', 'mensagem', 'criada_em']
++
++
++class NotificacaoViewSet(ModelViewSet):
++    serializer_class = NotificacaoSerializer
++    permission_classes = [IsAuthenticated]
++    http_method_names = ['get', 'patch', 'delete', 'head', 'options', 'post']
++
++    def get_queryset(self):
++        return Notificacao.objects.filter(usuario=self.request.user, excluida=False)
++
++    def list(self, request, *args, **kwargs):
++        prazos(request.user)
++        return super().list(request, *args, **kwargs)
++
++    def perform_destroy(self, instance):
++        instance.excluida = True
++        instance.save(update_fields=['excluida'])
++
++    def create(self, request, *args, **kwargs):
++        from rest_framework.exceptions import MethodNotAllowed
++
++        raise MethodNotAllowed('POST')
++
++    @action(detail=False, methods=['post'], url_path='ler-todas')
++    def ler_todas(self, request):
++        total = self.get_queryset().filter(lida=False).update(lida=True)
++        return Response({'atualizadas': total})

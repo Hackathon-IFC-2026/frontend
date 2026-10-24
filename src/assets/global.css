@@ -397,3 +397,28 @@ textarea {
     font-size: calc(36 * var(--u));
   }
 }
+
+/* Keep workspace navigation visible without the delayed authentication entrance. */
+.app-content .page-enter-active,
+.app-content .page-leave-active {
+  transition: opacity 0.18s ease, translate 0.18s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active, .page-leave-active,
+  .app-content .page-enter-active, .app-content .page-leave-active { transition: none; }
+}
+
+:root {
+  --sidebar-surface: #fafaf8;
+  --sidebar-hover: #f1f3f2;
+  --sidebar-ink: #252525;
+  --sidebar-muted: #858585;
+  --sidebar-border: #eaecea;
+}
+html.dark-mode {
+  --sidebar-surface: #19231e;
+  --sidebar-hover: #28372e;
+  --sidebar-ink: #e4ebe4;
+  --sidebar-muted: #9caea2;
+  --sidebar-border: #314238;
+}

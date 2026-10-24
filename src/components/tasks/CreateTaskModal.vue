@@ -1,111 +1,116 @@
-
 <template>
   <div v-if="modelValue" class="overlay" @click.self="fechar">
-    <div class="modal">
+    <div
+      class="modal task-form-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-task-title"
+    >
       <header class="modal-header">
         <div>
-          <h2>Nova tarefa</h2>
-          <p>Organize as atividades do seu projeto.</p>
+          <h2 id="new-task-title">{{ tarefa ? 'Editar tarefa' : 'Nova tarefa' }}</h2>
+          <p>Organize uma nova atividade para seu projeto.</p>
         </div>
 
-        <button type="button" class="close" @click="fechar">
+        <button
+          type="button"
+          class="close"
+          aria-label="Fechar formulário da tarefa"
+          @click="fechar"
+        >
           &times;
         </button>
       </header>
 
       <form @submit.prevent="salvar">
         <div class="campo">
-          <label>Título da tarefa *</label>
+          <label for="task-title">Título da tarefa *</label>
           <input
+            id="task-title"
             v-model="form.titulo"
-            maxlength="150"
+            maxlength="100"
             placeholder="Ex: Desenvolver tela inicial"
             required
           />
         </div>
 
         <div class="campo">
-          <label>Descrição</label>
+          <label for="task-description">Descrição *</label>
           <textarea
+            id="task-description"
             v-model="form.descricao"
-            rows="4"
+            rows="2"
+            required
             placeholder="O que precisa ser feito?"
           />
         </div>
 
         <div class="duas-colunas">
           <div class="campo">
-            <label>Prioridade</label>
-            <select v-model="form.prioridade">
+            <label for="task-start">Data de início</label
+            ><input
+              id="task-start"
+              v-model="form.data_inicio"
+              type="date"
+              lang="pt-BR"
+              :max="form.prazo || undefined"
+            />
+          </div>
+          <div class="campo">
+            <label for="task-due">Prazo de conclusão</label
+            ><input
+              id="task-due"
+              v-model="form.prazo"
+              type="date"
+              lang="pt-BR"
+              :min="form.data_inicio || undefined"
+            />
+          </div>
+        </div>
+        <div class="duas-colunas">
+          <div class="campo">
+            <label for="task-priority">Prioridade</label
+            ><select
+              id="task-priority"
+              v-model="form.prioridade"
+              class="k-filter"
+              :data-priority="form.prioridade"
+            >
               <option value="baixa">Baixa</option>
               <option value="media">Média</option>
               <option value="alta">Alta</option>
             </select>
           </div>
-
           <div class="campo">
-            <label>Situação</label>
-            <select v-model="form.status">
+            <label for="task-status">Status</label
+            ><select
+              id="task-status"
+              v-model="form.status"
+              class="k-filter"
+              :data-status="form.status"
+            >
               <option value="a_fazer">A fazer</option>
               <option value="em_andamento">Em andamento</option>
               <option value="concluido">Concluído</option>
             </select>
           </div>
         </div>
-
-        <div class="duas-colunas">
-          <div class="campo">
-            <label>Data de início</label>
-            <input v-model="form.data_inicio" type="date" />
-          </div>
-
-          <div class="campo">
-            <label>Prazo de entrega</label>
-            <input
-              v-model="form.prazo"
-              type="date"
-              :min="form.data_inicio || undefined"
-            />
-          </div>
-        </div>
-
         <div class="campo">
-          <label>Responsáveis</label>
-
-          <div class="participantes">
-            <label
-              v-for="pessoa in participantes"
-              :key="pessoa.id"
-              class="participante"
-            >
-              <input
-                v-model="form.responsaveis"
-                type="checkbox"
-                :value="pessoa.id"
-              />
-
-              <span class="avatar">
-                {{ pessoa.nome.charAt(0).toUpperCase() }}
-              </span>
-
-              <span>{{ pessoa.nome }}</span>
-            </label>
-
-            <p v-if="!participantes.length" class="vazio">
-              Nenhum participante disponível.
-            </p>
-          </div>
+          <label for="task-assignee">Responsável</label>
+          <select id="task-assignee" v-model="form.responsavel" :disabled="!podeAtribuir">
+            <option :value="null">Sem responsável</option>
+            <option v-for="pessoa in participantes" :key="pessoa.id" :value="Number(pessoa.id)">
+              {{ pessoa.nome || pessoa.email }}
+            </option>
+          </select>
         </div>
-
         <p v-if="erro" class="erro">{{ erro }}</p>
 
         <footer class="modal-footer">
-          <button type="button" class="cancelar" @click="fechar">
-            Cancelar
-          </button>
+          <button type="button" class="cancelar" @click="fechar">Cancelar</button>
 
           <button type="submit" class="salvar" :disabled="salvando">
-            {{ salvando ? 'Criando...' : 'Criar tarefa' }}
+            {{ salvando ? 'Salvando...' : tarefa ? 'Salvar alterações' : 'Criar tarefa' }}
           </button>
         </footer>
       </form>
@@ -116,38 +121,44 @@
 <script setup>
 import { reactive, ref, watch } from 'vue'
 import { useTaskStore } from '@/stores/taskStore'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   modelValue: Boolean,
+  tarefa: { type: Object, default: null },
+  podeAtribuir: { type: Boolean, default: true },
   projetoId: {
     type: [Number, String],
-    required: true
+    required: true,
   },
   participantes: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   statusInicial: {
     type: String,
-    default: 'a_fazer'
-  }
+    default: 'a_fazer',
+  },
 })
 
-const emit = defineEmits(['update:modelValue', 'created'])
+const emit = defineEmits(['update:modelValue', 'created', 'updated'])
 
 const store = useTaskStore()
+const auth = useAuthStore()
 const salvando = ref(false)
 const erro = ref('')
 
 function formularioInicial() {
   return {
-    titulo: '',
-    descricao: '',
-    prioridade: 'media',
-    status: props.statusInicial,
-    data_inicio: '',
-    prazo: '',
-    responsaveis: []
+    titulo: props.tarefa?.titulo || '',
+    descricao: props.tarefa?.descricao || '',
+    prioridade: props.tarefa?.prioridade || 'media',
+    status: props.tarefa?.status || props.statusInicial,
+    prazo: props.tarefa?.prazo || '',
+    data_inicio: props.tarefa?.data_inicio || '',
+    responsavel: props.tarefa
+      ? (props.tarefa.responsaveis[0]?.id ?? null)
+      : (auth.usuario?.id ?? null),
   }
 }
 
@@ -160,7 +171,7 @@ watch(
       Object.assign(form, formularioInicial())
       erro.value = ''
     }
-  }
+  },
 )
 
 function fechar() {
@@ -171,35 +182,33 @@ function fechar() {
 async function salvar() {
   if (!form.titulo.trim() || salvando.value) return
 
-  if (form.data_inicio && form.prazo && form.prazo < form.data_inicio) {
-    erro.value = 'O prazo não pode ser anterior à data de início.'
+  if (form.data_inicio && form.prazo && form.data_inicio > form.prazo) {
+    erro.value = 'A data de início não pode ser posterior ao prazo de conclusão.'
     return
   }
-
   salvando.value = true
   erro.value = ''
 
   try {
-   const responsaveis = props.participantes.filter(
-  pessoa => form.responsaveis.includes(pessoa.id)
-)
+    const dados = {
+      projeto: Number(props.projetoId),
+      titulo: form.titulo.trim(),
+      descricao: form.descricao.trim(),
+      status: form.status,
+      prioridade: form.prioridade,
+      data_inicio: form.data_inicio || null,
+      prazo: form.prazo || null,
+    }
+    if (props.podeAtribuir || !props.tarefa)
+      dados.responsaveis = form.responsavel ? [Number(form.responsavel)] : []
+    const tarefa = props.tarefa
+      ? await store.atualizarTarefa(props.tarefa.id, dados)
+      : await store.criarTarefa(dados)
 
-const tarefa = await store.criarTarefa({
-  projeto: Number(props.projetoId),
-  titulo: form.titulo.trim(),
-  descricao: form.descricao.trim(),
-  prioridade: form.prioridade,
-  status: form.status,
-  data_inicio: form.data_inicio || null,
-  prazo: form.prazo || null,
-  responsaveis: responsaveis
-})
-
-  emit('created', tarefa)
-emit('update:modelValue', false)
+    emit(props.tarefa ? 'updated' : 'created', tarefa)
+    emit('update:modelValue', false)
   } catch (error) {
-    console.error(error)
-    erro.value = 'Não foi possível criar a tarefa.'
+    erro.value = store.error || error.response?.data?.detail || 'Não foi possível salvar a tarefa.'
   } finally {
     salvando.value = false
   }
@@ -220,14 +229,14 @@ emit('update:modelValue', false)
 
 .modal {
   width: 100%;
-  max-width: 620px;
-  max-height: 90vh;
+  max-width: 520px;
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
-  padding: 30px;
-  border-radius: 18px;
-  background: #fff;
+  padding: 22px;
+  border-radius: 14px;
+  background: var(--theme-bg-ffffff, #fff);
   box-sizing: border-box;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
+  box-shadow: 0 12px 45px rgba(0, 0, 0, 0.13);
   font-family: Poppins, sans-serif;
 }
 
@@ -235,18 +244,18 @@ emit('update:modelValue', false)
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 26px;
+  margin-bottom: 18px;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 25px;
-  color: #243e2c;
+  font-size: 21px;
+  color: var(--theme-text-243e2c, #243e2c);
 }
 
 .modal-header p {
   margin: 5px 0 0;
-  color: #819087;
+  color: var(--theme-text-819087, #819087);
   font-size: 13px;
 }
 
@@ -254,21 +263,21 @@ emit('update:modelValue', false)
   border: none;
   background: transparent;
   font-size: 29px;
-  color: #7a8580;
+  color: var(--theme-text-7a8580, #7a8580);
   cursor: pointer;
 }
 
 .campo {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 5px;
+  margin-bottom: 13px;
 }
 
 .campo > label {
   font-size: 13px;
   font-weight: 600;
-  color: #344a3a;
+  color: var(--theme-text-344a3a, #344a3a);
 }
 
 .campo > input,
@@ -276,33 +285,33 @@ emit('update:modelValue', false)
 .campo select {
   width: 100%;
   box-sizing: border-box;
-  padding: 12px 14px;
-  border: 1px solid #dce4de;
+  padding: 9px 11px;
+  border: 1px solid var(--theme-border-dce4de, #dce4de);
   border-radius: 9px;
-  background: #fff;
+  background: var(--theme-bg-ffffff, #fff);
   font: inherit;
   font-size: 13px;
-  color: #26382b;
+  color: var(--theme-text-26382b, #26382b);
   outline: none;
 }
 
 .campo > input:focus,
 .campo textarea:focus,
 .campo select:focus {
-  border-color: #4e7855;
-  box-shadow: 0 0 0 3px rgba(78, 120, 85, .1);
+  border-color: var(--theme-border-4e7855, #4e7855);
+  box-shadow: 0 0 0 3px rgba(78, 120, 85, 0.1);
 }
 
 .duas-colunas {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 .participantes {
   max-height: 170px;
   overflow-y: auto;
-  border: 1px solid #dce4de;
+  border: 1px solid var(--theme-border-dce4de, #dce4de);
   border-radius: 10px;
   padding: 8px 12px;
 }
@@ -327,18 +336,18 @@ emit('update:modelValue', false)
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e0ebe2;
-  color: #345a3d;
+  background: var(--theme-bg-e0ebe2, #e0ebe2);
+  color: var(--theme-text-345a3d, #345a3d);
   font-weight: 600;
 }
 
 .vazio {
-  color: #87928a;
+  color: var(--theme-text-87928a, #87928a);
   font-size: 13px;
 }
 
 .erro {
-  color: #c0392b;
+  color: var(--theme-text-c0392b, #c0392b);
   font-size: 13px;
 }
 
@@ -346,8 +355,8 @@ emit('update:modelValue', false)
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding-top: 20px;
-  border-top: 1px solid #e7ece8;
+  padding-top: 14px;
+  border-top: 1px solid var(--theme-border-e7ece8, #e7ece8);
 }
 
 .modal-footer button {
@@ -360,8 +369,8 @@ emit('update:modelValue', false)
 }
 
 .cancelar {
-  background: #f1f4f2;
-  color: #415348;
+  background: var(--theme-bg-f1f4f2, #f1f4f2);
+  color: var(--theme-text-415348, #415348);
 }
 
 .salvar {
@@ -370,7 +379,7 @@ emit('update:modelValue', false)
 }
 
 .salvar:disabled {
-  opacity: .6;
+  opacity: 0.6;
 }
 
 @media (max-width: 600px) {

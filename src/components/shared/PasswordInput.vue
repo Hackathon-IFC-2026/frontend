@@ -59,7 +59,7 @@ const visible = ref(false)
 }
 
 .password-toggle:focus-visible {
-  outline: 2px solid #fff9e3;
+  outline: 2px solid var(--theme-border-fff9e3, #fff9e3);
   outline-offset: -2px;
 }
 

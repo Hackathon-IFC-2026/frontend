@@ -13,7 +13,7 @@
           <label for="senha">Senha</label>
           <PasswordInput id="senha" v-model="form.senha" placeholder="Digite sua senha aqui" autocomplete="current-password" required />
         </div>
-        <button type="submit" class="btn">Entrar</button>
+        <button type="submit" class="btn" :disabled="authStore.carregando">{{ authStore.carregando ? 'Entrando...' : 'Entrar' }}</button>
       </form>
     </section>
 
@@ -27,12 +27,13 @@
 
 <script setup>
 import { reactive } from 'vue'
-import PasswordInput from '../components/PasswordInput.vue'
-import { useRouter } from 'vue-router'
+import PasswordInput from '../components/shared/PasswordInput.vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const toast = useToastStore()
 
@@ -42,11 +43,13 @@ const form = reactive({
 })
 
 async function entrar() {
+  if (authStore.carregando) return
   try {
     await authStore.login(form.email, form.senha)
 
     toast.mostrar('Login realizado com sucesso!', 'success')
-    router.push('/inicio')
+    const redirect = route.query.redirect
+    router.push(typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('\\') ? redirect : '/projects')
 
   } catch (error) {
     const mensagem = error.response?.data?.detail
@@ -55,7 +58,7 @@ async function entrar() {
       toast.mostrar('E-mail ou senha incorretos.', 'error')
     } else {
       toast.mostrar(
-        mensagem || 'Não foi possível realizar o login.',
+        authStore.erro || mensagem || 'Não foi possível realizar o login.',
         'error'
       )
     }
