@@ -6,6 +6,10 @@ export function normalizarBaseURL(value) {
   const completa = /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : (/^(localhost|127\.0\.0\.1)(:|\/|$)/.test(url) ? 'http://' : 'https://') + url
   const parsed = new URL(completa)
   if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('URL da API inválida.')
+  // Compatibility with deployment environments still configured for the retired Render API.
+  if (parsed.hostname === 'backend-mknu.onrender.com') {
+    return 'https://backend.class.fabricadesoftware.ifc.edu.br'
+  }
   return completa
 }
 

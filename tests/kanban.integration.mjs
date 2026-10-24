@@ -75,6 +75,8 @@ try {
   }
   api.defaults.adapter = adapter
   assert.equal(normalizarBaseURL('https://https://backend.class.fabricadesoftware.ifc.edu.br/'), 'https://backend.class.fabricadesoftware.ifc.edu.br')
+  assert.equal(normalizarBaseURL('https://backend-mknu.onrender.com/'), 'https://backend.class.fabricadesoftware.ifc.edu.br')
+  assert.equal(normalizarBaseURL('http://localhost:8000/'), 'http://localhost:8000')
   await auth.cadastrar({ nome: ' Nova pessoa ', email: ' NOVO@EXAMPLE.COM ', senha: 'Senha123!', data_nascimento: '2000-01-01' })
   await auth.login(' ANA@EXAMPLE.COM ', 'Senha123!')
   assert.equal(auth.usuario.id, 1)
