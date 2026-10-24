@@ -9,6 +9,27 @@
       ></span>
     </div>
 
+    <div v-if="podeGerenciar" class="acoes-projeto">
+      <button
+        type="button"
+        class="acao-projeto editar-projeto"
+        :aria-label="`Editar projeto ${projeto.nome || projeto.titulo}`"
+        title="Editar projeto"
+        @click.stop="emit('editar', projeto)"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+      </button>
+      <button
+        type="button"
+        class="acao-projeto excluir-projeto"
+        :aria-label="`Excluir projeto ${projeto.nome || projeto.titulo}`"
+        title="Excluir projeto"
+        @click.stop="emit('excluir', projeto)"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+      </button>
+    </div>
+
     <h3 class="card-title" :title="projeto.nome || projeto.titulo">
       {{ projeto.nome || projeto.titulo || 'Casamento' }}
     </h3>
@@ -16,56 +37,59 @@
     <div class="card-sections">
       <div class="section-box section-full">
         <span class="section-label">Descrição</span>
-        <span class="section-value desc-text" :title="projeto.descricao || projeto.description">
-          {{ projeto.descricao || projeto.description || 'Decoração e iluminação natalina da cidade.' }}
+        <span class="section-value desc-text" :title="descricaoProjeto">
+          {{ descricaoProjeto }}
         </span>
       </div>
 
       <div class="section-row">
         <div class="section-box section-half">
-          <span class="section-label">Prioridade</span>
-          <span class="section-value priority-badge" :class="prioridadeClass">
-            {{ projeto.prioridade || 'Alta' }}
-          </span>
+          <span class="section-label">Criado em</span>
+          <span class="section-value">{{ dataCriacaoFormatada }}</span>
         </div>
 
         <div class="section-box section-half">
-          <span class="section-label">Status</span>
-          <span class="section-value status-badge" :class="statusBadgeClass">
-            {{ projeto.status || '50% Concluído' }}
-          </span>
-        </div>
-      </div>
-
-      <div class="section-row">
-        <div class="section-box section-half">
-          <span class="section-label">Data</span>
-          <span class="section-value">{{ projeto.data || '28/07/2026' }}</span>
-        </div>
-
-        <div class="section-box section-half">
-          <span class="section-label">Participantes</span>
-          <div class="members-mini-group">
-            <div
-              v-for="(membro, idx) in listaParticipantes"
-              :key="idx"
-              class="member-mini-circle"
-              :title="membro?.nome || 'Participante'"
-            >
-              <img v-if="membro?.avatar" :src="membro.avatar" :alt="membro?.nome || 'Participante'" />
-            </div>
-            <span v-if="totalParticipantes > 3" class="member-more-count">
-              +{{ totalParticipantes - 3 }}
-            </span>
+          <span class="section-label">Criador</span>
+          <div
+            class="creator-avatar"
+            role="img"
+            :aria-label="`Criador: ${nomeCriador}`"
+            :title="nomeCriador"
+          >
+            <img v-if="fotoCriador" :src="fotoCriador" :alt="nomeCriador" />
+            <span v-else>{{ inicialCriador }}</span>
           </div>
         </div>
       </div>
 
       <div class="section-box section-full">
-        <span class="section-label">Endereço</span>
-        <span class="section-value address-text" :title="projeto.endereco">
-          {{ projeto.endereco || 'BR-280, 123' }}
+        <span class="section-label">Status</span>
+        <span class="section-value status-badge" :class="statusBadgeClass">
+          {{ projeto.status || 'Planejamento' }}
         </span>
+      </div>
+
+      <div class="section-box section-full">
+        <span class="section-label">Participantes</span>
+        <div v-if="listaParticipantes.length" class="members-mini-group">
+          <div
+            v-for="(membro, idx) in participantesExibidos"
+            :key="membro.id || idx"
+            class="member-mini-circle"
+            :title="nomeParticipante(membro)"
+          >
+            <img
+              v-if="membro?.avatar"
+              :src="membro.avatar"
+              :alt="nomeParticipante(membro)"
+            />
+            <span v-else>{{ inicialParticipante(membro) }}</span>
+          </div>
+          <span v-if="totalParticipantes > 3" class="member-more-count">
+            +{{ totalParticipantes - 3 }}
+          </span>
+        </div>
+        <span v-else class="section-value participantes-vazios">Nenhum participante</span>
       </div>
     </div>
 
@@ -93,15 +117,20 @@ const props = defineProps({
       id: 1,
       nome: 'Natal luz',
       descricao: 'Decoração e iluminação natalina da cidade.',
-      prioridade: 'Alta',
-      status: '50% Concluído',
-      endereco: 'BR-280, 123',
-      data: '11/12/2026',
+      criadoEm: '2026-12-11',
+      criador: 'Equipe Kando',
+      status: 'Em andamento',
       link: '',
-      participantes: [{}, {}, {}]
+      participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }, { nome: 'Carla' }]
     })
-  }
+  },
+  podeGerenciar: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+const emit = defineEmits(['editar', 'excluir'])
 
 const linkDestino = computed(() => {
   if (props.projeto.link) return props.projeto.link
@@ -118,35 +147,10 @@ function formatarCodigo(id) {
   return String(id).padStart(4, '0')
 }
 
-const prioridadeClass = computed(() => {
-  const p = (props.projeto.prioridade || '').toLowerCase()
-  if (p.includes('alta')) return 'priority-alta'
-  if (p.includes('med') || p.includes('méd')) return 'priority-media'
-  if (p.includes('baix')) return 'priority-baixa'
-  return 'priority-alta'
-})
-
-function extrairPorcentagem(status) {
-  if (typeof status === 'number') return status
-  if (!status) return null
-  const str = String(status)
-  const match = str.match(/(\d+(\.\d+)?)\s*%?/)
-  return match ? parseFloat(match[1]) : null
-}
-
 const statusFaixa = computed(() => {
-  const porcentagem = extrairPorcentagem(props.projeto.status)
-  if (porcentagem !== null) {
-    if (porcentagem <= 30) return 'vermelho'
-    if (porcentagem <= 70) return 'amarelo'
-    return 'verde'
-  }
-
   const s = String(props.projeto.status || '').toLowerCase()
   if (s.includes('concl') || s.includes('finaliz')) return 'verde'
-  if (s.includes('anda') || s.includes('prog')) return 'amarelo'
-  if (s.includes('inic') || s.includes('pend') || s.includes('paus') || s.includes('cancel')) return 'vermelho'
-
+  if (s.includes('paus') || s.includes('cancel')) return 'vermelho'
   return 'amarelo'
 })
 
@@ -163,15 +167,56 @@ const statusBadgeClass = computed(() => {
 })
 
 const totalParticipantes = computed(() => {
-  return Array.isArray(props.projeto.participantes) ? props.projeto.participantes.length : 3
+  return Array.isArray(props.projeto.participantes) ? props.projeto.participantes.length : 0
 })
 
 const listaParticipantes = computed(() => {
-  if (Array.isArray(props.projeto.participantes) && props.projeto.participantes.length > 0) {
-    return props.projeto.participantes.slice(0, 3)
-  }
-  return [{}, {}, {}]
+  return Array.isArray(props.projeto.participantes) ? props.projeto.participantes : []
 })
+
+const participantesExibidos = computed(() => listaParticipantes.value.slice(0, 3))
+
+const nomeCriador = computed(() => {
+  const criador = props.projeto.criador || props.projeto.creator
+  return typeof criador === 'object' && criador !== null
+    ? criador.name || criador.nome || criador.email || 'Não informado'
+    : criador || 'Não informado'
+})
+
+const fotoCriador = computed(() => {
+  const criador = props.projeto.criador || props.projeto.creator
+  return typeof criador === 'object' && criador !== null
+    ? criador.foto || criador.avatar || criador.photo || criador.profile_picture || ''
+    : ''
+})
+
+const inicialCriador = computed(() =>
+  nomeCriador.value.charAt(0).toLocaleUpperCase('pt-BR'),
+)
+
+const descricaoProjeto = computed(() => {
+  const descricao =
+    props.projeto.descricao ||
+    props.projeto.description ||
+    'Decoração e iluminação natalina da cidade.'
+  return String(descricao).slice(0, 100)
+})
+
+const dataCriacaoFormatada = computed(() => {
+  const data = props.projeto.criadoEm || props.projeto.criado_em || props.projeto.created_at
+  if (!data) return 'Não informada'
+
+  const [ano, mes, dia] = String(data).slice(0, 10).split('-')
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : String(data)
+})
+
+function nomeParticipante(membro) {
+  return typeof membro === 'string' ? membro : membro?.nome || membro?.name || 'Participante'
+}
+
+function inicialParticipante(membro) {
+  return nomeParticipante(membro).charAt(0).toLocaleUpperCase('pt-BR')
+}
 </script>
 
 <style scoped>
@@ -202,6 +247,41 @@ const listaParticipantes = computed(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
+}
+
+.acoes-projeto {
+  position: absolute;
+  top: 12px;
+  right: 30px;
+  display: flex;
+  gap: 5px;
+}
+
+.acao-projeto {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f1;
+  color: #48634c;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.acao-projeto .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.editar-projeto:hover {
+  background: #e3eee4;
+  color: #245b31;
+}
+
+.excluir-projeto:hover {
+  background: #fde8e7;
+  color: #b42318;
 }
 
 .card-code {
@@ -290,23 +370,30 @@ const listaParticipantes = computed(() => {
   text-overflow: ellipsis;
 }
 
-.desc-text,
-.address-text {
+.creator-avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #e0ebe2;
+  color: #345a3d;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.creator-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.desc-text {
   font-weight: 500;
   color: #374151;
   font-size: 0.72rem;
-}
-
-.priority-badge.priority-alta {
-  color: #ef4444;
-}
-
-.priority-badge.priority-media {
-  color: #f59e0b;
-}
-
-.priority-badge.priority-baixa {
-  color: #10b981;
 }
 
 .status-badge.status-vermelho {
@@ -337,6 +424,16 @@ const listaParticipantes = computed(() => {
   overflow: hidden;
 }
 
+.member-mini-circle span {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #344a3a;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
 .member-mini-circle:first-child {
   margin-left: 0;
 }
@@ -352,6 +449,11 @@ const listaParticipantes = computed(() => {
   color: #6b7280;
   margin-left: 4px;
   font-weight: 600;
+}
+
+.participantes-vazios {
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .btn-acessar {

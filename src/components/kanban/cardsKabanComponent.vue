@@ -44,7 +44,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import IndicadorPrioridade from '@/components/IndicadorPrioridade.vue'
+import IndicadorPrioridade from '@/components/shared/IndicadorPrioridade.vue'
 
 const props = defineProps({
   tarefa: {

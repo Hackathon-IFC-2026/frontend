@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
-import IndicadorPrioridade from '@/components/IndicadorPrioridade.vue'
+import IndicadorPrioridade from '@/components/shared/IndicadorPrioridade.vue'
+import FiltroDropdown from '@/components/shared/FiltroDropdown.vue'
 import { normalizarPrioridade, OPCOES_PRIORIDADE } from '@/utils/prioridadesTarefas'
 
 const busca = ref('')
@@ -11,6 +12,17 @@ const STATUS_OPTIONS = [
   { value: 'em_processo', label: 'Em andamento' },
   { value: 'concluido', label: 'Concluída' },
 ]
+const OPCOES_FILTRO_STATUS = [
+  { value: 'todos', label: 'Todos os status', tom: 'neutro' },
+  ...STATUS_OPTIONS.map((status) => ({
+    ...status,
+    tom: status.value,
+  })),
+]
+const OPCOES_FILTRO_PRIORIDADE = OPCOES_PRIORIDADE.map((prioridade) => ({
+  ...prioridade,
+  tom: prioridade.value === 'todas' ? 'neutro' : prioridade.value,
+}))
 
 // Dados de exemplo para montar a interface; a API ainda não fornece estes dados.
 const projetos = ref([
@@ -186,32 +198,17 @@ function classeStatus(status) {
             />
           </label>
 
-          <label class="filtro-select">
-            <span class="visually-hidden">Filtrar tarefas por status</span>
-            <select v-model="filtroStatus">
-              <option value="todos">Todos os status</option>
-              <option
-                v-for="status in STATUS_OPTIONS"
-                :key="status.value"
-                :value="status.value"
-              >
-                {{ status.label }}
-              </option>
-            </select>
-          </label>
+          <FiltroDropdown
+            v-model="filtroStatus"
+            :options="OPCOES_FILTRO_STATUS"
+            label="Filtrar tarefas por status"
+          />
 
-          <label class="filtro-select">
-            <span class="visually-hidden">Filtrar tarefas por prioridade</span>
-            <select v-model="filtroPrioridade">
-              <option
-                v-for="prioridade in OPCOES_PRIORIDADE"
-                :key="prioridade.value"
-                :value="prioridade.value"
-              >
-                {{ prioridade.label }}
-              </option>
-            </select>
-          </label>
+          <FiltroDropdown
+            v-model="filtroPrioridade"
+            :options="OPCOES_FILTRO_PRIORIDADE"
+            label="Filtrar tarefas por prioridade"
+          />
         </div>
       </div>
 
@@ -292,19 +289,16 @@ function classeStatus(status) {
 }
 
 .pagina-cabecalho,
-.secao-cabecalho,
 .projeto-cabecalho,
 .tarefa-linha,
 .tarefa-principal,
 .tarefa-etiquetas,
-.filtros,
 .resumo-card {
   display: flex;
   align-items: center;
 }
 
 .pagina-cabecalho,
-.secao-cabecalho,
 .projeto-cabecalho,
 .tarefa-linha {
   justify-content: space-between;
@@ -416,7 +410,10 @@ function classeStatus(status) {
 }
 
 .secao-cabecalho {
-  gap: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 24px;
   margin-bottom: 18px;
 }
 
@@ -431,51 +428,53 @@ function classeStatus(status) {
 }
 
 .filtros {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.7fr) repeat(2, minmax(160px, 1fr));
   gap: 10px;
-  min-width: 0;
-}
-
-.campo-busca,
-.filtro-select select {
-  display: flex;
-  align-items: center;
-  min-height: 42px;
-  border: 1px solid #dce3dc;
-  border-radius: 9px;
-  background: #fff;
-  color: #516052;
-}
-
-.filtro-select {
+  width: 100%;
   min-width: 0;
 }
 
 .campo-busca {
+  align-items: center;
+  min-height: 46px;
+  border: 1px solid #d4dfd5;
+  border-radius: 11px;
+  background: #fff;
+  color: #516052;
+  box-shadow: 0 2px 7px rgba(26, 55, 33, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.campo-busca:focus-within {
+  border-color: #4e7855;
+  box-shadow: 0 0 0 3px rgba(78, 120, 85, 0.14);
+  outline: none;
+}
+
+.campo-busca {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 0 11px;
+  width: 100%;
+  padding: 0 13px;
   min-width: 0;
 }
 
 .campo-busca .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: #66816a;
   font-size: 1.15rem;
 }
 
 .campo-busca input {
-  width: 190px;
+  width: 100%;
+  flex: 1;
   min-width: 0;
   border: 0;
   outline: 0;
+  background: transparent;
   color: #1a3721;
-  font: inherit;
-  font-size: 0.85rem;
-}
-
-.filtro-select select {
-  max-width: 100%;
-  padding: 0 30px 0 12px;
   font: inherit;
   font-size: 0.85rem;
 }
@@ -701,42 +700,12 @@ function classeStatus(status) {
   }
 
   .secao-cabecalho {
-    align-items: stretch;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 
   .filtros {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .campo-busca input {
-    width: 100%;
-  }
-
-  .filtro-select select {
-    width: 100%;
-  }
-}
-
-@media (min-width: 761px) and (max-width: 1000px) {
-  .secao-cabecalho {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .filtros {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 1fr));
-    justify-content: stretch;
-  }
-
-  .campo-busca input {
-    width: 100%;
-  }
-
-  .filtro-select select {
-    width: 100%;
+    grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(130px, 1fr));
   }
 }
 
@@ -756,6 +725,10 @@ function classeStatus(status) {
 
   .projeto-cabecalho {
     padding: 14px 12px;
+  }
+
+  .filtros {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .contador-tarefas {

@@ -1,10 +1,16 @@
 <template>
   <div class="projetos-container">
     <div class="page-header">
-      <h1 class="page-title">Projetos</h1>
-      <p class="pagina-descricao">
+      <div>
+        <h1 class="page-title">Projetos</h1>
+        <p class="pagina-descricao">
           Acompanhe todos os projetos que você faz parte e acompanhe seu andamento.
         </p>
+      </div>
+      <button class="adicionar-projeto" type="button" @click="abrirFormularioProjeto">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+        Adicionar projeto
+      </button>
     </div>
 
     <div v-if="carregando" class="loading-state">
@@ -21,6 +27,9 @@
         v-for="projeto in projetos"
         :key="projeto.id || projeto.id_projeto || projeto._id"
         :projeto="projeto"
+        :pode-gerenciar="podeGerenciarProjeto(projeto)"
+        @editar="editarProjeto"
+        @excluir="excluirProjeto"
         @click="selecionarProjeto(projeto)"
         @opcoes="abrirMenuProjeto"
       />
@@ -29,13 +38,34 @@
     <div v-if="!carregando && projetos.length === 0" class="empty-state">
       <p>Nenhum projeto encontrado.</p>
     </div>
+
+    <CreateProjectModal
+      v-model="modalProjetoAberto"
+      :projeto="projetoEmEdicao"
+      :criador="usuarioAtual"
+      :usuarios="usuarios"
+      :usuarios-carregando="carregandoUsuarios"
+      :erro-usuarios="erroUsuarios"
+      @created="adicionarProjeto"
+      @updated="atualizarProjeto"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import cardProjeto from '@/components/cardProjeto.vue'
-//import api from '/services/api.js'
+import { computed, ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import api from '/services/api.js'
+import cardProjeto from '@/components/projects/cardProjeto.vue'
+import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
+
+const authStore = useAuthStore()
+const modalProjetoAberto = ref(false)
+const projetoEmEdicao = ref(null)
+const usuarioAtual = computed(() => authStore.usuario)
+const usuarios = ref([])
+const carregandoUsuarios = ref(false)
+const erroUsuarios = ref('')
 
 // DADOS ESTÁTICOS
 const projetos = ref([
@@ -43,90 +73,74 @@ const projetos = ref([
     id: 1,
     nome: 'Natal luz',
     descricao: 'Decoração e iluminação natalina da cidade.',
-    prioridade: 'Alta',
-    status: '50% Concluído',
-    endereco: 'BR-280, 123',
-    data: '11/12/2026',
+    status: 'Em andamento',
+    criadoEm: '2026-12-11',
+    criador: 'Equipe Kando',
     link: '',
-    imagem: null,
-    participantes: [{}, {}, {}]
+    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }, { nome: 'Carla' }]
   },
   {
     id: 2,
     nome: 'Reforma Praça Central',
     descricao: 'Paisagismo, bancos e iluminação pública.',
-    prioridade: 'Média',
-    status: '20% Concluído',
-    endereco: 'Av. Brasil, 500',
-    data: '15/01/2027',
-    imagem: null,
-    participantes: [{}, {}]
+    status: 'Planejamento',
+    criadoEm: '2027-01-15',
+    criador: 'Equipe Kando',
+    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }]
   },
   {
     id: 3,
     nome: 'Mutirão Verde',
     descricao: 'Plantio de árvores e conscientização ambiental.',
-    prioridade: 'Baixa',
-    status: '85% Concluído',
-    endereco: 'Rua das Flores, 42',
-    data: '05/11/2026',
-    imagem: null,
-    participantes: [{}, {}, {}, {}]
+    status: 'Concluído',
+    criadoEm: '2026-11-05',
+    criador: 'Equipe Kando',
+    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }, { nome: 'Carla' }, { nome: 'Davi' }]
   },
   {
     id: 4,
     nome: 'Festival de Inverno',
     descricao: 'Shows culturais, gastronomia e artesanato.',
-    prioridade: 'Alta',
-    status: '40% Concluído',
-    endereco: 'Parque Municipal',
-    data: '20/07/2027',
-    imagem: null,
-    participantes: [{}, {}]
+    status: 'Em andamento',
+    criadoEm: '2027-07-20',
+    criador: 'Equipe Kando',
+    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }]
   },
   {
     id: 5,
     nome: 'Feira Tecnológica',
     descricao: 'Exposição de startups e palestras de inovação.',
-    prioridade: 'Média',
-    status: '10% Concluído',
-    endereco: 'Centro de Eventos',
-    data: '18/09/2027',
-    imagem: null,
-    participantes: [{}, {}, {}]
+    status: 'Planejamento',
+    criadoEm: '2027-09-18',
+    criador: 'Equipe Kando',
+    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }, { nome: 'Carla' }]
   },
   {
     id: 6,
     nome: 'Iluminação Pública LED',
     descricao: 'Instalação de lâmpadas LED sustentáveis.',
-    prioridade: 'Alta',
-    status: '90% Concluído',
-    endereco: 'Bairro Novo',
-    data: '02/12/2026',
-    imagem: null,
-    participantes: [{}]
+    status: 'Concluído',
+    criadoEm: '2026-12-02',
+    criador: 'Equipe Kando',
+    participantes: [{ nome: 'Ana' }]
   },
   {
     id: 7,
     nome: 'Revitalização Orla',
     descricao: 'Ciclovia e nova calçada para caminhada.',
-    prioridade: 'Média',
-    status: '65% Concluído',
-    endereco: 'Av. Beira Mar, 100',
-    data: '30/03/2027',
-    imagem: null,
-    participantes: [{}, {}, {}]
+    status: 'Em andamento',
+    criadoEm: '2027-03-30',
+    criador: 'Equipe Kando',
+    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }, { nome: 'Carla' }]
   },
   {
     id: 8,
     nome: 'Horta Comunitária',
     descricao: 'Cultivo de hortaliças e oficinas ecológicas.',
-    prioridade: 'Baixa',
-    status: '100% Concluído',
-    endereco: 'Rua São Paulo, 88',
-    data: '10/10/2026',
-    imagem: null,
-    participantes: [{}, {}]
+    status: 'Concluído',
+    criadoEm: '2026-10-10',
+    criador: 'Equipe Kando',
+    participantes: [{ nome: 'Ana' }, { nome: 'Bruno' }]
   }
 ])
 
@@ -148,13 +162,11 @@ const buscarProjetos = async () => {
       id: item.id || item.id_projeto,
       nome: item.nome || item.titulo || item.name,
       descricao: item.descricao || item.description || '',
-      prioridade: item.prioridade || 'Média',
       status: item.status || 'Em andamento',
-      endereco: item.endereco || item.localizacao || '',
-      data: item.data || item.prazo || item.data_fim || '',
+      criadoEm: item.criadoEm || item.criado_em || item.created_at || '',
+      criador: item.criador || item.creator || item.created_by || '',
       link: item.link || '', // Link para navegação
-      imagem: item.imagem || item.banner || null,
-      participantes: item.participantes || item.membros || [{}, {}, {}]
+      participantes: item.participantes || item.membros || []
     }))
     */
   } catch (err) {
@@ -176,6 +188,94 @@ function selecionarProjeto(projeto) {
 function abrirMenuProjeto(projeto) {
   console.log('Opções do projeto:', projeto)
 }
+
+async function abrirFormularioProjeto(projeto = null) {
+  projetoEmEdicao.value = projeto
+  modalProjetoAberto.value = true
+  if (
+    (usuarios.value.length && authStore.usuario?.id && !erroUsuarios.value) ||
+    carregandoUsuarios.value
+  ) {
+    return
+  }
+
+  carregandoUsuarios.value = true
+  erroUsuarios.value = ''
+  usuarios.value = []
+
+  try {
+    const primeiraResposta = await api.get('/api/usuarios/')
+    const dados = primeiraResposta.data
+    const listaInicial = Array.isArray(dados) ? dados : dados.results || []
+    const listaUsuarios = [...listaInicial]
+    let proximaPagina = dados.next
+
+    while (proximaPagina) {
+      const resposta = await api.get(proximaPagina)
+      const usuariosDaPagina = Array.isArray(resposta.data)
+        ? resposta.data
+        : resposta.data.results || []
+      listaUsuarios.push(...usuariosDaPagina)
+      proximaPagina = resposta.data.next
+    }
+
+    usuarios.value = listaUsuarios.filter((usuario) => usuario.is_active !== false)
+
+    if (!authStore.usuario?.id) {
+      await authStore.buscarUsuario()
+    }
+
+    if (!authStore.usuario?.id) {
+      throw new Error('Não foi possível identificar o usuário autenticado.')
+    }
+  } catch (error) {
+    console.error('Erro ao carregar usuários para o projeto:', error)
+    erroUsuarios.value = 'Não foi possível carregar os usuários. Tente novamente.'
+  } finally {
+    carregandoUsuarios.value = false
+  }
+}
+
+function adicionarProjeto(dadosProjeto) {
+  const proximoId = Math.max(0, ...projetos.value.map((projeto) => Number(projeto.id) || 0)) + 1
+  projetos.value.unshift({ id: proximoId, ...dadosProjeto })
+}
+
+function podeGerenciarProjeto(projeto) {
+  const criador = projeto.criador || projeto.creator
+  return Boolean(
+    usuarioAtual.value?.id &&
+      typeof criador === 'object' &&
+      criador?.id &&
+      String(criador.id) === String(usuarioAtual.value.id),
+  )
+}
+
+function editarProjeto(projeto) {
+  if (!podeGerenciarProjeto(projeto)) return
+  abrirFormularioProjeto(projeto)
+}
+
+function atualizarProjeto(projetoAtualizado) {
+  if (!podeGerenciarProjeto(projetoAtualizado)) return
+
+  const indice = projetos.value.findIndex(
+    (projeto) => String(projeto.id) === String(projetoAtualizado.id),
+  )
+
+  if (indice === -1) return
+  projetos.value[indice] = projetoAtualizado
+  projetoEmEdicao.value = null
+}
+
+function excluirProjeto(projeto) {
+  if (!podeGerenciarProjeto(projeto)) return
+  if (!window.confirm(`Deseja excluir o projeto "${projeto.nome}"?`)) return
+
+  projetos.value = projetos.value.filter(
+    (item) => String(item.id) !== String(projeto.id),
+  )
+}
 </script>
 
 <style scoped>
@@ -191,6 +291,10 @@ function abrirMenuProjeto(projeto) {
 }
 
 .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
@@ -207,6 +311,34 @@ function abrirMenuProjeto(projeto) {
 .pagina-descricao {
   margin: 8px 0 0;
   color: #68756a;
+}
+
+.adicionar-projeto {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: #1a3721;
+  color: #f6e8d0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.adicionar-projeto:hover {
+  transform: translateY(-1px);
+  background: #234d2e;
+}
+
+.adicionar-projeto .material-symbols-outlined {
+  font-size: 1.25rem;
 }
 
 .projetos-grid {
@@ -246,6 +378,16 @@ function abrirMenuProjeto(projeto) {
 @media (max-width: 760px) {
   .projetos-container {
     padding: 20px 16px 32px;
+  }
+
+  .page-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .adicionar-projeto {
+    align-self: flex-start;
   }
 
   .projetos-grid {
