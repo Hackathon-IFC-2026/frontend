@@ -12,7 +12,7 @@ export default defineConfig({
   ],
   server: {
     fs: {
-      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/src/backend/**', '**/backend-integration/**', '**/.backend-backups/**'],
+      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/src/backend/**', '**/backend/**', '**/backend-integration/**', '**/.backend-backups/**'],
     },
   },
   resolve: {

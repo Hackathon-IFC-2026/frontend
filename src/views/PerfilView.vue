@@ -124,7 +124,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import ProfilePhotoEditor from '@/components/ProfilePhotoEditor.vue'
-import PasswordInput from '@/components/PasswordInput.vue'
+import PasswordInput from '@/components/shared/PasswordInput.vue'
 import { mensagemErro } from '/services/apiHelpers'
 const authStore = useAuthStore()
 const usuarioAtual = computed(() => authStore.usuario || {})

@@ -1,10 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import AuthBackground from './components/AuthBackground.vue'
-import ToastNotification from './components/ToastNotification.vue'
-import FooterComponent from './components/FooterComponent.vue'
-import SidebarComponent from './components/SidebarComponent.vue'
+import AuthBackground from './components/layout/AuthBackground.vue'
+import ToastNotification from './components/shared/ToastNotification.vue'
+import FooterComponent from './components/layout/FooterComponent.vue'
+import SidebarComponent from './components/layout/SidebarComponent.vue'
 
 import { useWorkspaceSync } from './composables/useWorkspaceSync'
 useWorkspaceSync()

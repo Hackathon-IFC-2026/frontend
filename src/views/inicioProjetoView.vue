@@ -29,7 +29,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import cardProjeto from '@/components/cardProjeto.vue'
+import cardProjeto from '@/components/projects/cardProjeto.vue'
 import ProjectFormModal from '@/components/ProjectFormModal.vue'
 import { useProjectStore } from '@/stores/projectStore'
 const store = useProjectStore()
