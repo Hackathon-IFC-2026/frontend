@@ -52,7 +52,7 @@
 
 <script setup>
 import { reactive } from 'vue'
-import PasswordInput from '../components/PasswordInput.vue'
+import PasswordInput from '../components/shared/PasswordInput.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '../stores/toast'
