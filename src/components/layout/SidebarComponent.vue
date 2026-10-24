@@ -598,6 +598,8 @@ onUnmounted(() => {
   height: 38px;
   margin-top: 9px;
   font-size: 11px;
+  justify-content: flex-start;
+  text-align: left;
 }
 .logout:hover {
   color: #a35c5c;

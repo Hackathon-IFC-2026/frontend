@@ -163,11 +163,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   gap: 10px;
   padding: 0 14px;
   overflow: hidden;
-  border: 1px solid #d4dfd5;
+  border: 1px solid var(--color-border);
   border-radius: 11px;
-  background: #fff;
-  box-shadow: 0 2px 7px rgba(26, 55, 33, 0.04);
-  color: #516052;
+  background: var(--color-input);
+  box-shadow: 0 2px 7px var(--color-shadow);
+  color: var(--color-text);
   font: inherit;
   font-size: 0.85rem;
   text-align: left;
@@ -178,14 +178,19 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
 }
 
 .filtro-gatilho:hover {
-  border-color: #9db69f;
-  background-color: #fbfdfb;
+  border-color: var(--color-border-hover);
+  background-color: var(--color-background-soft);
 }
 
 .filtro-gatilho:focus-visible,
 .filtro-opcao:focus-visible {
-  outline: 2px solid #4e7855;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+.filtro-gatilho:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 .filtro-gatilho .seta {
@@ -193,8 +198,8 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   height: 8px;
   flex: 0 0 8px;
   margin-left: auto;
-  border-right: 2px solid #66816a;
-  border-bottom: 2px solid #66816a;
+  border-right: 2px solid var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
   transform: rotate(45deg) translateY(-2px);
   transition: transform 0.18s ease;
 }
@@ -268,10 +273,10 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   max-height: 260px;
   overflow-y: auto;
   padding: 7px;
-  border: 1px solid #dfe8df;
+  border: 1px solid var(--color-border);
   border-radius: 13px;
-  background: #fff;
-  box-shadow: 0 12px 28px rgba(26, 55, 33, 0.16);
+  background: var(--color-surface);
+  box-shadow: 0 12px 28px var(--color-shadow);
 }
 
 .filtro-opcoes.compacto {
@@ -291,7 +296,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
-  color: #344a3a;
+  color: var(--color-text);
   font: inherit;
   font-size: 0.84rem;
   text-align: left;
@@ -307,13 +312,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
 }
 
 .filtro-opcao:hover {
-  background: #f3f7f3;
-}
-
-.filtro-opcao.selecionada {
-  border-color: #dfe8df;
-  background: #f4f8f4;
-  font-weight: 600;
+  background: var(--color-background-soft);
 }
 
 .indicador-opcao {
@@ -348,38 +347,65 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   background: #c84b4b;
 }
 
+.filtro-opcao.tom--fazer,
+.filtro-opcao.tom--a_fazer {
+  --opcao-tom: #77917a;
+}
+
+.filtro-opcao.tom--em_processo,
+.filtro-opcao.tom--em_andamento,
+.filtro-opcao.tom--media {
+  --opcao-tom: #db8a27;
+}
+
+.filtro-opcao.tom--concluido,
+.filtro-opcao.tom--baixa {
+  --opcao-tom: #3b8a54;
+}
+
+.filtro-opcao.tom--alta {
+  --opcao-tom: #c84b4b;
+}
+
+.filtro-opcao:is(
+  .tom--fazer,
+  .tom--a_fazer,
+  .tom--em_processo,
+  .tom--em_andamento,
+  .tom--media,
+  .tom--concluido,
+  .tom--baixa,
+  .tom--alta
+) {
+  border-color: color-mix(in srgb, var(--opcao-tom) 24%, var(--color-border));
+  background: color-mix(in srgb, var(--opcao-tom) 8%, var(--color-surface));
+  color: color-mix(in srgb, var(--opcao-tom) 82%, var(--color-text));
+}
+
+.filtro-opcao:is(
+  .tom--fazer,
+  .tom--a_fazer,
+  .tom--em_processo,
+  .tom--em_andamento,
+  .tom--media,
+  .tom--concluido,
+  .tom--baixa,
+  .tom--alta
+):hover {
+  background: color-mix(in srgb, var(--opcao-tom) 14%, var(--color-surface));
+}
+
+.filtro-opcao.selecionada {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 .check {
   margin-left: auto;
-  color: #315e3b;
+  color: var(--color-primary);
   font-size: 1rem;
-}
-
-.tom--fazer.selecionada,
-.tom--a_fazer.selecionada {
-  border-color: #d6e0d7;
-  background: #edf1ed;
-  color: #526653;
-}
-
-.tom--em_processo.selecionada,
-.tom--em_andamento.selecionada,
-.tom--media.selecionada {
-  border-color: #f2d6af;
-  background: #fff6e9;
-  color: #a75e0b;
-}
-
-.tom--concluido.selecionada,
-.tom--baixa.selecionada {
-  border-color: #c6e5cc;
-  background: #eaf6ec;
-  color: #28713e;
-}
-
-.tom--alta.selecionada {
-  border-color: #f1caca;
-  background: #fff0f0;
-  color: #b42318;
 }
 
 @media (prefers-reduced-motion: reduce) {
