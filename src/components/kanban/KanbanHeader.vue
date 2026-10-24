@@ -49,6 +49,22 @@
 import { computed } from 'vue'
 import FiltroDropdown from '@/components/shared/FiltroDropdown.vue'
 
+const opcoesPrioridade = [
+  { value: 'todas', label: 'Todas as prioridades', tom: 'neutro' },
+  { value: 'alta', label: 'Alta', tom: 'alta' },
+  { value: 'media', label: 'Média', tom: 'media' },
+  { value: 'baixa', label: 'Baixa', tom: 'baixa' },
+]
+
+const opcoesParticipantes = computed(() => [
+  { value: 'todos', label: 'Todos os responsáveis', tom: 'neutro' },
+  ...props.participantes.map((pessoa) => ({
+    value: String(pessoa.id),
+    label: pessoa.nome,
+    tom: 'neutro',
+  })),
+])
+
 const props = defineProps({
   projeto: {
     type: Object,
@@ -208,23 +224,53 @@ defineEmits([
 .campo-busca {
   flex: 1;
   min-width: 170px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 0 10px;
-  border: 1px solid #dce5de;
-  border-radius: 8px;
+  padding: 0 11px;
+  border: 1px solid #d4dfd5;
+  border-radius: 9px;
   background: white;
+  box-shadow: 0 2px 7px rgba(26, 55, 33, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.campo-busca:focus-within {
+  border-color: #4e7855;
+  box-shadow: 0 0 0 3px rgba(78, 120, 85, 0.14);
+  outline: none;
 }
 
 .campo-busca .material-symbols-outlined {
   font-size: 18px;
   color: #819187;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.campo-busca:focus-within .material-symbols-outlined {
+  transform: scale(1.12);
+  color: #4e7855;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-criar,
+  .btn-criar .material-symbols-outlined,
+  .campo-busca .material-symbols-outlined {
+    transition: none;
+  }
+
+  .btn-criar:hover,
+  .btn-criar:active,
+  .btn-criar:hover .material-symbols-outlined {
+    transform: none;
+  }
 }
 
 .campo-busca input {
   width: 100%;
-  padding: 9px 0;
+  min-width: 0;
+  padding: 8px 0;
   border: 0;
   outline: 0;
   font: 12px Poppins, sans-serif;

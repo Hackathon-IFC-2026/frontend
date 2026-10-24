@@ -199,6 +199,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   transition: transform 0.18s ease;
 }
 
+.texto-gatilho {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .filtro-gatilho[aria-expanded='true'] .seta {
   transform: rotate(225deg) translate(-2px, -1px);
 }
@@ -241,6 +247,14 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', fecharAoClicar
   border-color: #f1caca;
   background: #fff0f0;
   color: #b42318;
+}
+
+.filtro-gatilho.compacto {
+  min-height: 40px;
+  gap: 8px;
+  padding: 0 11px;
+  border-radius: 9px;
+  font-size: 0.8rem;
 }
 
 .filtro-opcoes {
